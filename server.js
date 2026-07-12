@@ -164,7 +164,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log("Survey collector running");
-  console.log(`Local:   http://localhost:${8787}`);
+  console.log(`Local:   http://localhost:${PORT}`);
   for (const url of networkUrls()) console.log(`Network: ${url}`);
   console.log("Responses will be saved to survey-responses.json");
 });
