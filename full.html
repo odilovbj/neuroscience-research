@@ -126,7 +126,11 @@ p{color:var(--sub);line-height:1.7;font-size:.98rem;}
 .info-lbl{font-size:10px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.06em;}
 .info-val{font-size:13.5px;font-weight:600;color:var(--text);margin-top:2px;}
 .contact-bar{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
-.contact-chip{flex:1 1 220px;min-width:0;display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:12px;padding:11px 14px;font-size:12.5px;font-weight:500;color:var(--muted);overflow:hidden;}
+.contact-chip{flex:1 1 220px;min-width:0;display:flex;align-items:center;gap:11px;background:rgba(3,16,12,.34);border:1px solid rgba(255,255,255,.28);border-radius:12px;padding:11px 14px;font-size:12.5px;font-weight:500;color:var(--muted);overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.1);}
+.c-ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.c-ico svg{width:17px;height:17px;}
+.c-ico.mail{background:rgba(16,185,129,.18);border:1px solid rgba(52,211,153,.4);color:#6ee7b7;}
+.c-ico.tg{background:rgba(96,165,250,.18);border:1px solid rgba(96,165,250,.45);color:#60a5fa;}
 .contact-chip>div{min-width:0;}
 .contact-chip a{color:var(--accent);text-decoration:none;font-weight:600;overflow-wrap:anywhere;word-break:break-word;}
 
@@ -218,6 +222,18 @@ p{color:var(--sub);line-height:1.7;font-size:.98rem;}
 .nb-btn:hover{transform:translateY(-1px);}
 .nb-btn:active{transform:scale(.98);}
 .nb-btn.pressed{background:linear-gradient(180deg,var(--green),#059669);color:#022c22;}
+.nb-oneliner{background:rgba(3,16,12,.4);border:1.5px solid rgba(96,165,250,.5);border-radius:16px;padding:14px 16px;font-size:14.5px;line-height:1.6;color:var(--text);font-weight:600;box-shadow:0 3px 10px rgba(0,0,0,.2);}
+.nb-mode-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:100px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;font-family:var(--font-display);}
+.nb-mode-badge.practice{background:rgba(96,165,250,.2);border:1.5px solid rgba(96,165,250,.6);color:#93c5fd;text-shadow:0 0 10px rgba(96,165,250,.6);}
+.nb-mode-badge.real{background:rgba(52,211,153,.2);border:1.5px solid rgba(52,211,153,.6);color:#7cf5c4;text-shadow:0 0 10px rgba(16,185,129,.6);}
+.nb-explain{margin-top:16px;padding:16px 18px;background:rgba(3,16,12,.42);border:1.5px solid rgba(255,255,255,.28);border-radius:16px;font-size:14px;line-height:1.6;color:var(--text);box-shadow:0 4px 14px rgba(0,0,0,.24);text-align:center;max-width:340px;}
+.nb-explain.ok{border-color:rgba(52,211,153,.55);}
+.nb-explain.err{border-color:rgba(248,113,113,.55);}
+.nb-explain-title{font-family:var(--font-display);font-size:15.5px;font-weight:800;margin-bottom:5px;}
+.nb-explain.ok .nb-explain-title{color:var(--green);}
+.nb-explain.err .nb-explain-title{color:var(--red);}
+.nb-summary-ring{width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;margin:6px auto 18px;background:conic-gradient(var(--accent) calc(var(--pct)*1%),rgba(255,255,255,.1) 0);}
+.nb-summary-ring-inner{width:96px;height:96px;border-radius:50%;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .key-tag{font-size:10px;background:rgba(0,0,0,.1);border:1px solid rgba(0,0,0,.12);padding:2px 8px;border-radius:4px;font-weight:700;}
 
 /* ── RESULTS ── */
@@ -351,7 +367,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 const TR={
 uz:{title:'Migren, Uyqu va Xotira',sub:"O'smirlar o'rtasida ilmiy neyrologiya tadqiqoti.",anon:'Anonim · Ilmiy maqsad',
   about:"Bu so'rovnoma migren bosh og'rig'i, uyqu sifati va ishchi xotira o'rtasidagi bog'liqlikni o'rganadi.",
-  parts:'3 savolnoma',testlbl:'Xotira testi',dur:'3-5 daqiqa',priv:"To'liq anonim",
+  parts:'3 savolnoma',testlbl:'Xotira testi',dur:'15–20 daqiqa',priv:"To'liq anonim",
   contact:"Savollar yoki murojaat uchun:",start:'Boshlash',cont:'Davom etish',back:'← Orqaga',
   vol:"Ishtirok ixtiyoriy · Istalgan vaqtda to'xtatilishi mumkin",
   demo_t:'Siz haqingizda',demo_s:"Natijalarni guruhlash uchun kerak.",
@@ -384,7 +400,7 @@ uz:{title:'Migren, Uyqu va Xotira',sub:"O'smirlar o'rtasida ilmiy neyrologiya ta
   nb_t:'2-back Xotira Testi',nb_s:"Ekranda harflar birma-bir paydo bo'ladi.",
   nb_rule:"Agar hozirgi harf 2 TA OLDINGI harf bilan bir xil bo'lsa — tugmani bosing. Mos kelmasa — hech narsa qilmang.",
   nb_dp:"d-prime (d') bilan baholanadi — tasodifiy bosishlar inobatga olinadi.",
-  nb_go:'Testni boshlash →',nb_match:'Mos keldi — bosing',
+  nb_go:'Mashq bilan boshlash →',nb_match:'Mos keldi — bosing',
   nb_ok:"To'g'ri!",nb_err:"Noto'g'ri",nb_miss:'Miss',
   res_t:'Natijalar',res_ty:"Ishtirokingiz uchun katta rahmat!",res_sv:"Ma'lumotlar saqlandi.",
   mig_y:"Migren ehtimoli bor",mig_n:"Migren ko'rsatkichi past",
@@ -397,7 +413,7 @@ uz:{title:'Migren, Uyqu va Xotira',sub:"O'smirlar o'rtasida ilmiy neyrologiya ta
   home:'← Bosh sahifaga',fill:'Barcha savollarga javob bering',sel:'Javob tanlang'},
 ru:{title:'Мигрень, Сон и Память',sub:'Научное неврологическое исследование среди подростков.',anon:'Анонимно · Научные цели',
   about:'Этот опрос изучает связь между мигренью, качеством сна и рабочей памятью. Все ответы конфиденциальны.',
-  parts:'3 анкеты',testlbl:'Тест памяти',dur:'3-5 минут',priv:'Полная анонимность',
+  parts:'3 анкеты',testlbl:'Тест памяти',dur:'15–20 минут',priv:'Полная анонимность',
   contact:'По вопросам или для связи:',start:'Начать',cont:'Продолжить',back:'← Назад',
   vol:'Участие добровольно · Можно остановить в любое время',
   demo_t:'О вас',demo_s:'Для группировки результатов.',
@@ -430,7 +446,7 @@ ru:{title:'Мигрень, Сон и Память',sub:'Научное невр�
   nb_t:'Тест 2-back',nb_s:'Буквы появляются по одной.',
   nb_rule:'Если текущая буква совпадает с буквой 2 ПОЗИЦИИ НАЗАД — нажмите кнопку. Иначе ничего.',
   nb_dp:"Оценка по d-prime — случайные нажатия учитываются.",
-  nb_go:'Начать тест →',nb_match:'Совпадает — нажмите',
+  nb_go:'Начать с практики →',nb_match:'Совпадает — нажмите',
   nb_ok:'Верно!',nb_err:'Неверно',nb_miss:'Пропуск',
   res_t:'Результаты',res_ty:'Большое спасибо за участие!',res_sv:'Данные сохранены.',
   mig_y:'Вероятна мигрень',mig_n:'Показатель мигрени низкий',
@@ -443,7 +459,7 @@ ru:{title:'Мигрень, Сон и Память',sub:'Научное невр�
   home:'← На главную',fill:'Ответьте на все вопросы',sel:'Выберите ответ'},
 en:{title:'Migraine, Sleep & Memory',sub:'A scientific neurology study among adolescents.',anon:'Anonymous · Scientific purpose',
   about:'This survey examines the link between migraine, sleep quality and working memory. All responses are confidential.',
-  parts:'3 questionnaires',testlbl:'Memory test',dur:'3-5 minutes',priv:'Fully anonymous',
+  parts:'3 questionnaires',testlbl:'Memory test',dur:'15–20 minutes',priv:'Fully anonymous',
   contact:'For questions or enquiries:',start:'Start',cont:'Continue',back:'← Back',
   vol:'Participation is voluntary · You may stop at any time',
   demo_t:'About You',demo_s:'Used to group results.',
@@ -476,7 +492,7 @@ en:{title:'Migraine, Sleep & Memory',sub:'A scientific neurology study among ado
   nb_t:'2-Back Test',nb_s:'Letters appear one at a time.',
   nb_rule:'If the current letter matches the letter from 2 STEPS BACK — press the button. Otherwise do nothing.',
   nb_dp:"Scored using d-prime (d') — random pressing is accounted for.",
-  nb_go:'Start test →',nb_match:'Match — press here',
+  nb_go:'Start with practice →',nb_match:'Match — press here',
   nb_ok:'Correct!',nb_err:'Wrong',nb_miss:'Miss',
   res_t:'Results',res_ty:'Thank you so much for participating!',res_sv:'Your data has been saved.',
   mig_y:'Migraine likely',mig_n:'Migraine indicator low',
@@ -861,8 +877,14 @@ function s0(){
     <div class="eyebrow">${LANG==='en'?'Contact':LANG==='ru'?'Связь':'Bog\'lanish'}</div>
     <div class="explain-box"><p style="margin-bottom:12px;">${t('contact')}</p>
     <div class="contact-bar">
-      <div class="contact-chip">📧<div><div style="font-size:10px;color:var(--muted2);font-weight:700;">Email</div><a href="mailto:odilovbj@gmail.com">odilovbj@gmail.com</a></div></div>
-      <div class="contact-chip">✈️<div><div style="font-size:10px;color:var(--muted2);font-weight:700;">Telegram</div><a href="https://t.me/bkzd_odilov" target="_blank">@bkzd_odilov</a></div></div>
+      <div class="contact-chip">
+        <span class="c-ico mail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5l8.5 7 8.5-7"/></svg></span>
+        <div><div style="font-size:10px;color:var(--muted2);font-weight:700;">Email</div><a href="mailto:odilovbj@gmail.com">odilovbj@gmail.com</a></div>
+      </div>
+      <div class="contact-chip">
+        <span class="c-ico tg"><svg viewBox="0 0 240 240" fill="currentColor"><path d="M180.5 51.8 27.4 111.2c-11.1 4.4-11 10.6-2 13.4l39.1 12.2 90.8-57.3c4.3-2.6 8.2-1.2 5 1.7l-73.6 66.5h-.1l.1.1-2.8 39.2c4.1 0 5.9-1.9 8.1-4.1l19.6-19 40.7 30.1c7.5 4.1 12.9 2 14.8-6.9l26.9-126.9c2.8-11-.9-15.9-13.5-11.1Z"/></svg></span>
+        <div><div style="font-size:10px;color:var(--muted2);font-weight:700;">Telegram</div><a href="https://t.me/bkzd_odilov" target="_blank">@bkzd_odilov</a></div>
+      </div>
     </div></div>
   </div></div>
   <button class="btn btn-primary btn-full" onclick="S.step=1;render()">
@@ -1091,8 +1113,9 @@ function s6(){
   <div class="card"><div class="card-inner">
     <div class="eyebrow">6 / 9 · ${t('nb_t')}</div>
     <h2 style="margin-bottom:8px;">${t('nb_t')}</h2>
-    <p style="margin-bottom:18px;">${t('nb_s')}</p>
-    <div class="rule-panel">
+    <p style="margin-bottom:14px;">${t('nb_s')}</p>
+    <div class="nb-oneliner">${LANG==='en'?'💡 In one line: letters appear one by one — press the button only when the current letter is the SAME as the one shown 2 letters ago.':LANG==='ru'?'💡 Одной фразой: буквы появляются одна за другой — нажимайте кнопку только тогда, когда текущая буква совпадает с буквой, показанной 2 шага назад.':"💡 Bir gap bilan: harflar birin-ketin chiqadi — hozirgi harf 2 ta OLDINGI harf bilan AYNAN bir xil bo'lsagina tugmani bosing."}</div>
+    <div class="rule-panel" style="margin-top:14px;">
         <h3 style="margin-bottom:10px;">📐 ${LANG==='en'?'The Rule':LANG==='ru'?'Правило':'Qoidasi'}</h3>
         <p style="margin-bottom:14px;font-size:14.5px;">${t('nb_rule')}</p>
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:center;margin:18px 0;">
@@ -1102,7 +1125,7 @@ function s6(){
         <p style="font-size:13px;color:var(--muted);">${t('nb_dp')}</p>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;">
-      ${[['🔤',LANG==='en'?'Letters':LANG==='ru'?'Букв':'Harflar','22'],['⏱️',LANG==='en'?'Duration':LANG==='ru'?'Время':'Vaqt','~2min'],['⚡',LANG==='en'?'Tip':LANG==='ru'?'Совет':'Maslahat',LANG==='en'?'Be fast':LANG==='ru'?'Быстрее':"Tez bo'ling"]].map(([e,l,v])=>`<div style="background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:13px;padding:13px 8px;text-align:center;"><div style="font-size:22px;margin-bottom:5px;">${e}</div><div style="font-size:9.5px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">${l}</div><div style="font-size:15px;font-weight:700;margin-top:3px;">${v}</div></div>`).join('')}
+      ${[['🎓',LANG==='en'?'First':LANG==='ru'?'Сначала':'Avval',LANG==='en'?'8 · practice':LANG==='ru'?'8 · практика':'8 · mashq'],['🔤',LANG==='en'?'Then':LANG==='ru'?'Затем':'Keyin',LANG==='en'?'22 · real':LANG==='ru'?'22 · настоящий':'22 · asosiy'],['⏱️',LANG==='en'?'Duration':LANG==='ru'?'Время':'Vaqt','~3min']].map(([e,l,v])=>`<div style="background:rgba(3,16,12,.34);border:1px solid rgba(255,255,255,.28);box-shadow:0 3px 10px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.1);border-radius:13px;padding:13px 8px;text-align:center;"><div style="font-size:22px;margin-bottom:5px;">${e}</div><div style="font-size:9.5px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">${l}</div><div style="font-size:14px;font-weight:700;margin-top:3px;">${v}</div></div>`).join('')}
     </div>
   </div></div>
   <div class="brow">
@@ -1111,10 +1134,12 @@ function s6(){
   </div></div>`;
 }
 
-// ═══ N-BACK TASK ══════════════════════════════════════════════════════════
+// ═══ N-BACK TASK (guided practice round, then the real scored test) ══════
 const LTRS=['B','D','F','G','H','K','L','M','N','P','R','S','T'];
 const NB_TOTAL=22,NB_SHOW=2000,NB_BLANK=280;
+const NB_PRACTICE_TOTAL=8,NB_PRACTICE_SHOW=2800,NB_PRACTICE_BLANK=350;
 let nbSeq=[],nbIdx=0,nbResponded=false,nbStart=0,nbTimer=null,nbRAF=null;
+let nbMode='practice',nbPracticeCorrect=0;
 
 function genSeq(n){
   const s=[];
@@ -1123,53 +1148,101 @@ function genSeq(n){
     else{let l;do{l=LTRS[Math.floor(Math.random()*LTRS.length)];}while(i>=2&&l===s[i-2]);s.push(l);}
   }return s;
 }
-function startNback(){nbSeq=genSeq(NB_TOTAL);nbIdx=0;S.nback.trials=[];S.step=7;render();setTimeout(runTrial,700);}
+function genPracticeSeq(n){
+  // Teaching-oriented sequence: guarantees an early, obvious match so the rule "clicks" fast.
+  const s=[];
+  const forceMatchAt=new Set([2,5]);
+  for(let i=0;i<n;i++){
+    if(i>=2&&forceMatchAt.has(i)){s.push(s[i-2]);}
+    else if(i>=2&&Math.random()<0.28){s.push(s[i-2]);}
+    else{let l;do{l=LTRS[Math.floor(Math.random()*LTRS.length)];}while(i>=2&&l===s[i-2]);s.push(l);}
+  }return s;
+}
+function startNback(){
+  nbMode='practice';nbPracticeCorrect=0;
+  nbSeq=genPracticeSeq(NB_PRACTICE_TOTAL);nbIdx=0;
+  S.step=7;s7();
+  setTimeout(runTrial,700);
+}
+function startRealNback(){
+  nbMode='real';
+  nbSeq=genSeq(NB_TOTAL);nbIdx=0;S.nback.trials=[];
+  s7();
+  setTimeout(runTrial,700);
+}
+function retryPractice(){
+  nbMode='practice';nbPracticeCorrect=0;
+  nbSeq=genPracticeSeq(NB_PRACTICE_TOTAL);nbIdx=0;
+  s7();
+  setTimeout(runTrial,700);
+}
 function s7(){
   setP(7);
+  const total=nbMode==='practice'?NB_PRACTICE_TOTAL:NB_TOTAL;
+  const showMs=nbMode==='practice'?NB_PRACTICE_SHOW:NB_SHOW;
+  const badge=nbMode==='practice'
+    ?`<div class="nb-mode-badge practice">🎓 ${LANG==='en'?'Practice — not scored':LANG==='ru'?'Практика — не оценивается':"Mashq — baholanmaydi"}</div>`
+    :`<div class="nb-mode-badge real">✅ ${LANG==='en'?'Real test':LANG==='ru'?'Настоящий тест':'Asosiy test'}</div>`;
   app.innerHTML=`<div class="screen active" id="sc7">
   <div class="card"><div class="card-inner">
     <div class="eyebrow">7 / 9 · ${t('nb_t')}</div>
+    ${badge}
     <div class="nb-arena">
       <div class="nb-top">
-        <span class="nb-cnt" id="nb-cnt">1/${NB_TOTAL}</span>
+        <span class="nb-cnt" id="nb-cnt">1/${total}</span>
         <div class="nb-track"><div class="nb-fill" id="nb-fill" style="width:0%"></div></div>
-        <div class="nb-tmr-badge" id="nb-tmr">2.0s</div>
+        <div class="nb-tmr-badge" id="nb-tmr">${(showMs/1000).toFixed(1)}s</div>
       </div>
       <div class="nb-box" id="nb-box"><div id="nb-ltr">·</div></div>
       <div id="nb-fb"></div>
       <button class="nb-btn" id="nb-btn" onclick="nbPress()">
         ${t('nb_match')} <span class="key-tag">SPACE</span>
       </button>
+      <div id="nb-explain"></div>
     </div>
   </div></div>
   </div>`;
 }
 function runTrial(){
-  if(nbIdx>=nbSeq.length){finishNback();return;}
+  const total=nbMode==='practice'?NB_PRACTICE_TOTAL:NB_TOTAL;
+  const show=nbMode==='practice'?NB_PRACTICE_SHOW:NB_SHOW;
+  const blank=nbMode==='practice'?NB_PRACTICE_BLANK:NB_BLANK;
+  if(nbIdx>=nbSeq.length){
+    if(nbMode==='practice'){showPracticeSummary();}else{finishNback();}
+    return;
+  }
   nbResponded=false;
   const ltr=nbSeq[nbIdx];const isM=nbIdx>=2&&ltr===nbSeq[nbIdx-2];
   const lEl=document.getElementById('nb-ltr'),box=document.getElementById('nb-box');
-  const fb=document.getElementById('nb-fb'),btn=document.getElementById('nb-btn');
+  const fb=document.getElementById('nb-fb'),btn=document.getElementById('nb-btn'),ex=document.getElementById('nb-explain');
   if(!lEl)return;
   box.className='nb-box';fb.textContent='';fb.className='';btn&&btn.classList.remove('pressed');
+  if(ex)ex.innerHTML='';
   lEl.classList.add('gone');
-  setTimeout(()=>{if(document.getElementById('nb-ltr')){lEl.textContent=ltr;lEl.classList.remove('gone');}},NB_BLANK);
-  document.getElementById('nb-cnt').textContent=(nbIdx+1)+'/'+NB_TOTAL;
-  document.getElementById('nb-fill').style.width=((nbIdx/NB_TOTAL)*100)+'%';
-  nbStart=performance.now();startTimerAnim();clearTimeout(nbTimer);
+  setTimeout(()=>{if(document.getElementById('nb-ltr')){lEl.textContent=ltr;lEl.classList.remove('gone');}},blank);
+  document.getElementById('nb-cnt').textContent=(nbIdx+1)+'/'+total;
+  document.getElementById('nb-fill').style.width=((nbIdx/total)*100)+'%';
+  nbStart=performance.now();startTimerAnim(show);clearTimeout(nbTimer);
   nbTimer=setTimeout(()=>{
     stopTimerAnim();
     if(!nbResponded){
-      S.nback.trials.push({ltr,isM,responded:false,correct:!isM,rt:null});
-      if(isM){const f=document.getElementById('nb-fb');if(f){f.textContent=t('nb_miss');f.className='miss';}}
+      if(nbMode==='real'){
+        S.nback.trials.push({ltr,isM,responded:false,correct:!isM,rt:null});
+        if(isM){const f=document.getElementById('nb-fb');if(f){f.textContent=t('nb_miss');f.className='miss';}}
+      }else{
+        if(!isM)nbPracticeCorrect++; // correctly withheld on a non-match
+        showPracticeExplain(isM,false,ltr);
+      }
     }
     const le=document.getElementById('nb-ltr');if(le)le.classList.add('gone');
-    nbIdx++;setTimeout(runTrial,NB_BLANK);
-  },NB_SHOW);
+    if(nbMode==='real'){nbIdx++;setTimeout(runTrial,blank);}
+    // Practice mode never auto-advances — it waits for the person to tap "Continue"
+    // after reading the explanation, so nobody gets rushed while still learning the rule.
+  },show);
 }
-function startTimerAnim(){
+function startTimerAnim(show){
   const el=document.getElementById('nb-tmr');const t0=Date.now();stopTimerAnim();
-  function tick(){const r=Math.max(0,(NB_SHOW-(Date.now()-t0))/1000);if(el)el.textContent=r.toFixed(1)+'s';if(r>0)nbRAF=requestAnimationFrame(tick);}
+  function tick(){const r=Math.max(0,(show-(Date.now()-t0))/1000);if(el)el.textContent=r.toFixed(1)+'s';if(r>0)nbRAF=requestAnimationFrame(tick);}
   nbRAF=requestAnimationFrame(tick);
 }
 function stopTimerAnim(){if(nbRAF)cancelAnimationFrame(nbRAF);}
@@ -1177,11 +1250,63 @@ function nbPress(){
   if(nbResponded||nbIdx>=nbSeq.length)return;
   nbResponded=true;
   const rt=Math.round(performance.now()-nbStart),ltr=nbSeq[nbIdx],isM=nbIdx>=2&&ltr===nbSeq[nbIdx-2];
-  S.nback.trials.push({ltr,isM,responded:true,correct:isM,rt});
   const box=document.getElementById('nb-box'),fb=document.getElementById('nb-fb'),btn=document.getElementById('nb-btn');
   btn&&btn.classList.add('pressed');
-  if(isM){box&&(box.className='nb-box ok');if(fb){fb.textContent=t('nb_ok');fb.className='ok';}}
-  else{box&&(box.className='nb-box err');if(fb){fb.textContent=t('nb_err');fb.className='err';}}
+  if(nbMode==='real'){
+    S.nback.trials.push({ltr,isM,responded:true,correct:isM,rt});
+    if(isM){box&&(box.className='nb-box ok');if(fb){fb.textContent=t('nb_ok');fb.className='ok';}}
+    else{box&&(box.className='nb-box err');if(fb){fb.textContent=t('nb_err');fb.className='err';}}
+  }else{
+    clearTimeout(nbTimer);stopTimerAnim();
+    if(isM)nbPracticeCorrect++;
+    showPracticeExplain(isM,true,ltr);
+  }
+}
+function showPracticeExplain(isMatch,responded,ltr){
+  const ex=document.getElementById('nb-explain');
+  if(!ex)return;
+  let correct,title,body;
+  if(isMatch&&responded){
+    correct=true;
+    title=LANG==='en'?'✅ Correct!':LANG==='ru'?'✅ Верно!':"✅ To'g'ri!";
+    body=LANG==='en'?`"${ltr}" matched the letter shown 2 steps ago — pressing was the right call.`:LANG==='ru'?`«${ltr}» совпала с буквой, показанной 2 шага назад — вы правильно нажали.`:`"${ltr}" 2 qadam oldingi harf bilan bir xil edi — tugmani bosishingiz to'g'ri edi.`;
+  }else if(isMatch&&!responded){
+    correct=false;
+    title=LANG==='en'?'❌ Missed it':LANG==='ru'?'❌ Пропущено':"❌ O'tkazib yubordingiz";
+    body=LANG==='en'?`"${ltr}" DID match the letter from 2 steps ago — you should have pressed the button here.`:LANG==='ru'?`«${ltr}» совпала с буквой 2 шага назад — здесь нужно было нажать кнопку.`:`"${ltr}" 2 qadam oldingi harf bilan bir xil EDI — bu yerda tugmani bosishingiz kerak edi.`;
+  }else if(!isMatch&&responded){
+    correct=false;
+    title=LANG==='en'?'❌ Not quite':LANG==='ru'?'❌ Не совсем':"❌ Unday emas";
+    body=LANG==='en'?`"${ltr}" did NOT match the letter from 2 steps ago — no need to press here.`:LANG==='ru'?`«${ltr}» НЕ совпала с буквой 2 шага назад — здесь нажимать не нужно было.`:`"${ltr}" 2 qadam oldingi harf bilan bir xil EMAS edi — bu yerda tugmani bosishingiz shart emas edi.`;
+  }else{
+    correct=true;
+    title=LANG==='en'?'✅ Correct — no press needed':LANG==='ru'?'✅ Верно — нажимать не нужно было':"✅ To'g'ri — bosishingiz shart emas edi";
+    body=LANG==='en'?`"${ltr}" didn't match — you correctly did nothing.`:LANG==='ru'?`«${ltr}» не совпала — вы правильно ничего не нажали.`:`"${ltr}" mos kelmadi — siz to'g'ri hech narsa bosmadingiz.`;
+  }
+  ex.innerHTML=`<div class="nb-explain ${correct?'ok':'err'}">
+    <div class="nb-explain-title">${title}</div>
+    <div>${body}</div>
+  </div>
+  <button class="btn btn-primary" style="margin-top:14px;" onclick="nbPracticeNext()">${LANG==='en'?'Continue →':LANG==='ru'?'Далее →':'Davom etish →'}</button>`;
+}
+function nbPracticeNext(){nbIdx++;runTrial();}
+function showPracticeSummary(){
+  const pct=Math.round((nbPracticeCorrect/NB_PRACTICE_TOTAL)*100);
+  const good=pct>=70;
+  const arena=document.querySelector('#sc7 .nb-arena');
+  if(!arena)return;
+  arena.innerHTML=`
+    <div class="nb-summary-ring" style="--pct:${pct};">
+      <div class="nb-summary-ring-inner">
+        <div style="font-size:26px;font-weight:800;font-family:var(--font-display);">${nbPracticeCorrect}/${NB_PRACTICE_TOTAL}</div>
+        <div style="font-size:10px;color:var(--muted2);font-weight:700;text-transform:uppercase;">${LANG==='en'?'correct':LANG==='ru'?'верно':"to'g'ri"}</div>
+      </div>
+    </div>
+    <p style="text-align:center;max-width:340px;">${good?(LANG==='en'?"Nice work — you've got it! Ready for the real test?":LANG==='ru'?'Отлично — вы поняли принцип! Готовы к настоящему тесту?':"Ajoyib — qoidani tushundingiz! Asosiy testga tayyormisiz?"):(LANG==='en'?"Good start — a bit more practice will help it click even better.":LANG==='ru'?'Хорошее начало — чуть больше практики поможет закрепить.':"Yaxshi boshlanish — yana biroz mashq qilsangiz, yanada aniq tushunasiz.")}</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px;">
+      <button class="btn btn-ghost" onclick="retryPractice()">🔁 ${LANG==='en'?'Practice again':LANG==='ru'?'Практика ещё раз':'Yana mashq qilish'}</button>
+      <button class="btn btn-primary" onclick="startRealNback()">▶️ ${LANG==='en'?'Start real test':LANG==='ru'?'Начать настоящий тест':'Asosiy testni boshlash'}</button>
+    </div>`;
 }
 document.addEventListener('keydown',e=>{
   if(e.code==='Space'){const sc=document.getElementById('sc7');if(sc&&sc.classList.contains('active')){e.preventDefault();nbPress();}}
