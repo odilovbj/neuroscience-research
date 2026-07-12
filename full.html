@@ -1641,7 +1641,7 @@ function renderAdminTable(){
   const keys=ADMIN_SUMMARY_KEYS;
   const q=ADMIN_FILTER;
   const filtered=q?flat.filter(r=>Object.values(r).some(v=>String(v??'').toLowerCase().includes(q))):flat;
-  const head=`<th>${LANG==='en'?'Delete':'Delete information'}</th>`+keys.map(k=>`<th>${esc(ADMIN_LABELS[k]||k)}</th>`).join('');
+  const head=`<th>${LANG==='en'?'Delete':'Delete info'}</th>`+keys.map(k=>`<th>${esc(ADMIN_LABELS[k]||k)}</th>`).join('');
   const body=filtered.map(r=>{
     const cells=keys.map(k=>{
       let v=r[k];
