@@ -639,10 +639,11 @@ function selNum(el,autoAdv){
   if(autoAdv) autoAdvance(c);
 }
 function autoAdvance(container){
-  // Scroll the NEXT question section into view, not too aggressively
+  // Scroll the NEXT question section into view, not too aggressively.
+  // If this was the LAST question on the page, reveal the Continue button instead.
   setTimeout(()=>{
     const section=container.closest('.qs-block');
-    const next=section?.nextElementSibling;
+    const next=section?.nextElementSibling||document.querySelector('.screen.active .brow');
     if(next){
       const top=next.getBoundingClientRect().top+window.scrollY-80;
       window.scrollTo({top,behavior:'smooth'});
@@ -742,15 +743,17 @@ function initClocks(){
     if(wrap.dataset.bound)return;
     wrap.dataset.bound='1';
     const id=wrap.dataset.clock,unit=wrap.dataset.unit;
-    // start centred in the middle loop copy so there's room to scroll both directions
-    const cfg=CLOCKS[id];
-    if(cfg){
+    // Start centred in the middle loop copy so there's room to scroll both directions.
+    // Deferred to the next frame so this never races the page's own scroll-to-top.
+    requestAnimationFrame(()=>{
+      const cfg=CLOCKS[id];
+      if(!cfg)return;
       const list=unit==='h'?cfg.hours:cfg.minutes;
       const cur=unit==='h'?cfg.curH:cfg.curM;
       const realIdx=Math.max(0,list.indexOf(cur));
       wrap.scrollTop=(WHEEL_MID*list.length+realIdx)*WHEEL_ITEM;
       markWheelActive(wrap,WHEEL_MID*list.length+realIdx);
-    }
+    });
     let settleTimer=null,rafPending=false;
     wrap.addEventListener('scroll',()=>{
       if(!rafPending){
@@ -838,8 +841,8 @@ function s0(){
   </div>
   <div class="card"><div class="card-inner">
     <div class="eyebrow">${LANG==='en'?'About the study':LANG==='ru'?'Об исследовании':'Tadqiqot haqida'}</div>
-    <p style="margin-bottom:16px;">${t('about')}</p>
-    <div class="info-grid">
+    <div class="explain-box"><p>${t('about')}</p></div>
+    <div class="info-grid" style="margin-top:16px;">
       <div class="info-item"><div class="info-icon">📋</div><div><div class="info-lbl">${LANG==='en'?'Parts':LANG==='ru'?'Части':'Qismlar'}</div><div class="info-val">${t('parts')}</div></div></div>
       <div class="info-item"><div class="info-icon">🧠</div><div><div class="info-lbl">${LANG==='en'?'Task':LANG==='ru'?'Задание':'Test'}</div><div class="info-val">${t('testlbl')}</div></div></div>
       <div class="info-item"><div class="info-icon">⏱️</div><div><div class="info-lbl">${LANG==='en'?'Duration':LANG==='ru'?'Длительность':'Vaqt'}</div><div class="info-val">${t('dur')}</div></div></div>
@@ -848,11 +851,11 @@ function s0(){
   </div></div>
   <div class="card"><div class="card-inner">
     <div class="eyebrow">${LANG==='en'?'Contact':LANG==='ru'?'Связь':'Bog\'lanish'}</div>
-    <p style="margin-bottom:12px;">${t('contact')}</p>
+    <div class="explain-box"><p style="margin-bottom:12px;">${t('contact')}</p>
     <div class="contact-bar">
       <div class="contact-chip">📧<div><div style="font-size:10px;color:var(--muted2);font-weight:700;">Email</div><a href="mailto:odilovbj@gmail.com">odilovbj@gmail.com</a></div></div>
       <div class="contact-chip">✈️<div><div style="font-size:10px;color:var(--muted2);font-weight:700;">Telegram</div><a href="https://t.me/bkzd_odilov" target="_blank">@bkzd_odilov</a></div></div>
-    </div>
+    </div></div>
   </div></div>
   <button class="btn btn-primary btn-full" onclick="S.step=1;render()">
     ${t('start')}
@@ -886,7 +889,7 @@ function s1(){
     </div>
     <div class="qs-block" style="margin-top:22px;">
       <div class="qs"><span class="qs-icon">🤕</span>${t('hnow')}</div>
-      ${pillGroup('ha','😣','😊',t('yesh'),t('noh'),false)}
+      ${pillGroup('ha','😣','😊',t('yesh'),t('noh'),true)}
     </div>
   </div></div>
   <div class="brow">
@@ -921,7 +924,7 @@ function s2(){
     <hr>
     <div class="qs-block" style="margin-top:0;">
       <div class="qs first"><span class="qs-icon">📊</span>${t('mfreq_q')}</div>
-      ${optGroup('mfreq',mfItems,false)}
+      ${optGroup('mfreq',mfItems,true)}
     </div>
   </div></div>
   <div class="brow">
@@ -963,7 +966,7 @@ function s3(){
 
     <div class="qs-block" style="margin-top:22px;">
       <div class="qs"><span class="qs-icon">🛌</span>${t('q4q')}</div>
-      ${optGroup('q4',t('q4o').map((l,i)=>({v:i.toString(),l,e:['😵','😪','🙂','😴'][i]})))}
+      ${optGroup('q4',t('q4o').map((l,i)=>({v:i.toString(),l,e:['😵','😪','🙂','😴'][i]})),true)}
     </div>
   </div></div>
   <div class="brow">
@@ -1034,7 +1037,7 @@ function s5(){
     </div>
     <div class="qs-block" style="margin-top:22px;">
       <div class="qs"><span class="qs-icon">🔥</span>${t('p9q')}</div>
-      ${optGroup('p9',t('p9o').map((l,i)=>({v:i.toString(),l,e:['💪','🙂','😐','😩'][i]})))}
+      ${optGroup('p9',t('p9o').map((l,i)=>({v:i.toString(),l,e:['💪','🙂','😐','😩'][i]})),true)}
     </div>
   </div></div>
   <div class="brow">
@@ -1505,7 +1508,7 @@ function renderAdminTable(){
   const keys=ADMIN_SUMMARY_KEYS;
   const q=ADMIN_FILTER;
   const filtered=q?flat.filter(r=>Object.values(r).some(v=>String(v??'').toLowerCase().includes(q))):flat;
-  const head=`<th>${LANG==='en'?'Delete':'Delete information'}</th>`+keys.map(k=>`<th>${esc(ADMIN_LABELS[k]||k)}</th>`).join('');
+  const head=`<th>${LANG==='en'?'Delete':'O\u2018chirish'}</th>`+keys.map(k=>`<th>${esc(ADMIN_LABELS[k]||k)}</th>`).join('');
   const body=filtered.map(r=>{
     const cells=keys.map(k=>{
       let v=r[k];
@@ -1659,10 +1662,14 @@ function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(
 
 // ═══ RENDER ════════════════════════════════════════════════════════════════
 function render(){
-  scrollT();movePill(LANG);
+  movePill(LANG);
   const steps=[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9];
   if(S.step===7){s7();setTimeout(()=>{if(nbSeq.length>0&&nbIdx===0)runTrial();},160);}
   else if(steps[S.step])steps[S.step]();
+  // Jump to the top of the new page AFTER its content (and any internal wheel
+  // positioning) has been built and laid out — avoids racing an in-flight smooth
+  // scroll against programmatic scrollTop changes inside the new page.
+  window.scrollTo(0,0);
 }
 render();
 </script>
