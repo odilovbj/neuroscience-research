@@ -20,9 +20,9 @@
   --font-body:'Inter',system-ui,sans-serif;
   --edge-shadow:0 1px 2px rgba(0,0,0,.45),0 1px 14px rgba(0,0,0,.22);
 }
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html{scroll-behavior:smooth;}
-body{font-family:var(--font-body);color:var(--text);background:var(--bg);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;text-shadow:var(--edge-shadow);}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;overflow-anchor:none;}
+html{scroll-behavior:smooth;overflow-anchor:none;}
+body{font-family:var(--font-body);color:var(--text);background:var(--bg);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;text-shadow:var(--edge-shadow);overflow-anchor:none;}
 
 /* ── BG ── */
 .bg{position:fixed;inset:0;z-index:0;overflow:hidden;}
@@ -39,7 +39,7 @@ body{font-family:var(--font-body);color:var(--text);background:var(--bg);min-hei
 .svg-defs{position:absolute;width:0;height:0;pointer-events:none;}
 
 /* ── LAYOUT ── */
-#app{position:relative;z-index:10;max-width:640px;margin:0 auto;padding:58px 14px 90px;}
+#app{position:relative;z-index:10;max-width:640px;margin:0 auto;padding:58px 14px 90px;overflow-anchor:none;}
 
 /* ── PROGRESS ── */
 .pbar-shell{position:fixed;top:0;left:0;right:0;z-index:300;height:3px;background:rgba(255,255,255,0.04);}
@@ -181,7 +181,7 @@ p{color:var(--sub);line-height:1.7;font-size:.98rem;}
   background:linear-gradient(135deg,rgba(16,185,129,.28),rgba(6,182,212,.18));
   border:1px solid rgba(110,231,183,.5);border-radius:14px;pointer-events:none;z-index:1;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 6px 18px rgba(16,185,129,.2);}
-.wheel-scroll{position:relative;z-index:2;height:168px;overflow-y:scroll;scroll-snap-type:y mandatory;
+.wheel-scroll{position:relative;z-index:2;height:168px;overflow-y:scroll;scroll-snap-type:y mandatory;overflow-anchor:none;
   -webkit-overflow-scrolling:touch;scrollbar-width:none;
   mask-image:linear-gradient(180deg,transparent 0,#000 32%,#000 68%,transparent 100%);
   -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 32%,#000 68%,transparent 100%);}
@@ -743,6 +743,10 @@ function initClocks(){
     if(wrap.dataset.bound)return;
     wrap.dataset.bound='1';
     const id=wrap.dataset.clock,unit=wrap.dataset.unit;
+    // Setting scrollTop programmatically still fires a native 'scroll' event. Without this
+    // flag, that self-inflicted event gets mistaken for real user scrolling, which marks the
+    // wheel "touched" and can trigger auto-advance before the person has touched anything.
+    let silent=true;
     // Start centred in the middle loop copy so there's room to scroll both directions.
     // Deferred to the next frame so this never races the page's own scroll-to-top.
     requestAnimationFrame(()=>{
@@ -753,9 +757,12 @@ function initClocks(){
       const realIdx=Math.max(0,list.indexOf(cur));
       wrap.scrollTop=(WHEEL_MID*list.length+realIdx)*WHEEL_ITEM;
       markWheelActive(wrap,WHEEL_MID*list.length+realIdx);
+      if(typeof pinTop==='function')pinTop();
+      setTimeout(()=>{silent=false;},280);
     });
     let settleTimer=null,rafPending=false;
     wrap.addEventListener('scroll',()=>{
+      if(silent)return;
       if(!rafPending){
         rafPending=true;
         requestAnimationFrame(()=>{rafPending=false;updateWheel(id,unit,false);});
@@ -765,6 +772,7 @@ function initClocks(){
     },{passive:true});
     wrap.querySelectorAll('.wheel-item').forEach(item=>{
       item.addEventListener('click',()=>{
+        silent=false;
         const flat=Number(item.dataset.idx);
         wrap.scrollTo({top:flat*WHEEL_ITEM,behavior:'smooth'});
         clearTimeout(settleTimer);
@@ -1508,7 +1516,7 @@ function renderAdminTable(){
   const keys=ADMIN_SUMMARY_KEYS;
   const q=ADMIN_FILTER;
   const filtered=q?flat.filter(r=>Object.values(r).some(v=>String(v??'').toLowerCase().includes(q))):flat;
-  const head=`<th>${LANG==='en'?'Delete':'Delete information'}</th>`+keys.map(k=>`<th>${esc(ADMIN_LABELS[k]||k)}</th>`).join('');
+  const head=`<th>${LANG==='en'?'Delete':'O\u2018chirish'}</th>`+keys.map(k=>`<th>${esc(ADMIN_LABELS[k]||k)}</th>`).join('');
   const body=filtered.map(r=>{
     const cells=keys.map(k=>{
       let v=r[k];
@@ -1661,15 +1669,23 @@ function dlJSON(rows){dl(new Blob([JSON.stringify(rows,null,2)],{type:'applicati
 function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.appendChild(a);a.click();document.body.removeChild(a);}
 
 // ═══ RENDER ════════════════════════════════════════════════════════════════
+function pinTop(){
+  // Force the window back to the top. Called more than once on purpose \u2014
+  // this is a defensive net against any late layout shift (wheel positioning,
+  // web-font swap, mobile reflow) that might otherwise nudge the scroll position
+  // after the initial jump-to-top already happened.
+  window.scrollTo(0,0);
+}
 function render(){
   movePill(LANG);
   const steps=[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9];
   if(S.step===7){s7();setTimeout(()=>{if(nbSeq.length>0&&nbIdx===0)runTrial();},160);}
   else if(steps[S.step])steps[S.step]();
-  // Jump to the top of the new page AFTER its content (and any internal wheel
-  // positioning) has been built and laid out — avoids racing an in-flight smooth
-  // scroll against programmatic scrollTop changes inside the new page.
-  window.scrollTo(0,0);
+  pinTop();
+  requestAnimationFrame(()=>{pinTop();requestAnimationFrame(pinTop);});
+  setTimeout(pinTop,60);
+  setTimeout(pinTop,180);
+  setTimeout(pinTop,400);
 }
 render();
 </script>
