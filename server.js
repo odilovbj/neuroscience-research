@@ -8,6 +8,9 @@ const ROOT = __dirname;
 const HTML_FILE = path.join(ROOT, "full.html");
 const DATA_FILE = path.join(ROOT, "survey-responses.json");
 const COUNTER_FILE = path.join(ROOT, "participant-counter.json");
+const STARTS_FILE = path.join(ROOT, "survey-starts.json");
+const BACKUP_DIR = path.join(ROOT, "backups");
+const MAX_BACKUPS = 25;
 
 const apiHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,7 +35,27 @@ function readRows() {
   }
 }
 
+function backupBeforeWrite() {
+  try {
+    if (!fs.existsSync(DATA_FILE)) return;
+    if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const dest = path.join(BACKUP_DIR, `survey-responses-${stamp}.json`);
+    fs.copyFileSync(DATA_FILE, dest);
+    const files = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.startsWith("survey-responses-") && f.endsWith(".json"))
+      .sort();
+    while (files.length > MAX_BACKUPS) {
+      const oldest = files.shift();
+      try { fs.unlinkSync(path.join(BACKUP_DIR, oldest)); } catch (err) { /* ignore */ }
+    }
+  } catch (err) {
+    console.error("Backup failed (continuing anyway):", err.message);
+  }
+}
+
 function writeRows(rows) {
+  backupBeforeWrite();
   const tmp = DATA_FILE + ".tmp";
   fs.writeFileSync(tmp, JSON.stringify(rows, null, 2));
   fs.renameSync(tmp, DATA_FILE);
@@ -97,6 +120,27 @@ function upsertRow(row) {
   return { row: normalized, count: rows.length };
 }
 
+function readStarts() {
+  try {
+    if (!fs.existsSync(STARTS_FILE)) return [];
+    const parsed = JSON.parse(fs.readFileSync(STARTS_FILE, "utf8"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function appendStart() {
+  const starts = readStarts();
+  starts.push({ date: new Date().toISOString() });
+  try {
+    fs.writeFileSync(STARTS_FILE, JSON.stringify(starts, null, 2));
+  } catch (err) {
+    console.error("Could not record survey start:", err.message);
+  }
+  return starts.length;
+}
+
 function networkUrls() {
   const urls = [];
   for (const entries of Object.values(os.networkInterfaces())) {
@@ -122,6 +166,17 @@ const server = http.createServer(async (req, res) => {
 
   if (url.pathname === "/api/next-id" && req.method === "GET") {
     return send(res, 200, JSON.stringify({ id: nextParticipantId() }), { "Content-Type": "application/json; charset=utf-8" });
+  }
+
+  if (url.pathname === "/api/starts" && req.method === "POST") {
+    const total = appendStart();
+    return send(res, 200, JSON.stringify({ ok: true, total }), { "Content-Type": "application/json; charset=utf-8" });
+  }
+
+  if (url.pathname === "/api/stats" && req.method === "GET") {
+    const starts = readStarts().length;
+    const completions = readRows().length;
+    return send(res, 200, JSON.stringify({ starts, completions }), { "Content-Type": "application/json; charset=utf-8" });
   }
 
   if (url.pathname.startsWith("/api/responses/") && req.method === "DELETE") {
