@@ -261,7 +261,15 @@ p{color:var(--sub);line-height:1.7;font-size:.98rem;}
 .res-val{font-family:var(--font-display);font-size:15.5px;font-weight:700;margin-top:2px;color:var(--text);}
 .interp{padding:15px 16px;background:rgba(3,16,12,.4);border:1px solid rgba(52,211,153,.4);border-radius:14px;font-size:14px;line-height:1.7;color:var(--text);box-shadow:0 3px 10px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.1);}
 .explain-box{background:rgba(3,16,12,.24);border:1.5px solid rgba(255,255,255,.28);border-radius:18px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.08);}
+.explain-box p{line-height:1.78;letter-spacing:.005em;}
 .explain-hd{font-family:var(--font-display);font-size:13.5px;font-weight:800;letter-spacing:.02em;color:var(--text);margin-bottom:10px;text-shadow:0 1px 8px rgba(0,0,0,.35);}
+.consent-box{display:flex;align-items:flex-start;gap:11px;margin-top:16px;padding:13px 15px;background:rgba(3,16,12,.4);border:1.5px solid rgba(255,255,255,.24);border-radius:14px;cursor:pointer;transition:border-color .2s,background .2s;}
+.consent-box:hover{border-color:rgba(52,211,153,.45);}
+.consent-box span{font-size:13.5px;line-height:1.55;color:var(--text);font-weight:500;}
+.consent-cb{width:20px;height:20px;flex-shrink:0;margin-top:1px;accent-color:var(--accent);cursor:pointer;}
+.consent-box.shake{animation:shakeX .4s;border-color:rgba(248,113,113,.6);}
+@keyframes shakeX{0%,100%{transform:translateX(0);}20%{transform:translateX(-6px);}40%{transform:translateX(6px);}60%{transform:translateX(-4px);}80%{transform:translateX(4px);}}
+.qc-block{padding:14px;border:1.5px dashed rgba(96,165,250,.45);border-radius:16px;background:rgba(96,165,250,.06);}
 
 /* ── THANK YOU ── */
 .ty-star{font-size:72px;display:block;text-align:center;margin-bottom:12px;animation:starPop .7s cubic-bezier(.34,1.56,.64,1);}
@@ -401,7 +409,7 @@ uz:{title:'Migren, Uyqu va Xotira',sub:"O'smirlar o'rtasida ilmiy neyrologiya ta
   nb_rule:"Agar hozirgi harf 2 TA OLDINGI harf bilan bir xil bo'lsa — tugmani bosing. Mos kelmasa — hech narsa qilmang.",
   nb_dp:"d-prime (d') bilan baholanadi — tasodifiy bosishlar inobatga olinadi.",
   nb_go:'Mashq bilan boshlash →',nb_match:'Mos keldi — bosing',
-  nb_ok:"To'g'ri!",nb_err:"Noto'g'ri",nb_miss:'Miss',
+  nb_ok:"✓ To'g'ri!",nb_err:"✕ Noto'g'ri",nb_miss:"⏱ O'tkazib yubordingiz",
   res_t:'Natijalar',res_ty:"Ishtirokingiz uchun katta rahmat!",res_sv:"Ma'lumotlar saqlandi.",
   mig_y:"Migren ehtimoli bor",mig_n:"Migren ko'rsatkichi past",
   slp_b:"Yomon uyqu",slp_g:"Yaxshi uyqu",
@@ -447,7 +455,7 @@ ru:{title:'Мигрень, Сон и Память',sub:'Научное невр�
   nb_rule:'Если текущая буква совпадает с буквой 2 ПОЗИЦИИ НАЗАД — нажмите кнопку. Иначе ничего.',
   nb_dp:"Оценка по d-prime — случайные нажатия учитываются.",
   nb_go:'Начать с практики →',nb_match:'Совпадает — нажмите',
-  nb_ok:'Верно!',nb_err:'Неверно',nb_miss:'Пропуск',
+  nb_ok:'✓ Верно!',nb_err:'✕ Неверно',nb_miss:'⏱ Пропущено',
   res_t:'Результаты',res_ty:'Большое спасибо за участие!',res_sv:'Данные сохранены.',
   mig_y:'Вероятна мигрень',mig_n:'Показатель мигрени низкий',
   slp_b:'Плохой сон',slp_g:'Хороший сон',
@@ -493,7 +501,7 @@ en:{title:'Migraine, Sleep & Memory',sub:'A scientific neurology study among ado
   nb_rule:'If the current letter matches the letter from 2 STEPS BACK — press the button. Otherwise do nothing.',
   nb_dp:"Scored using d-prime (d') — random pressing is accounted for.",
   nb_go:'Start with practice →',nb_match:'Match — press here',
-  nb_ok:'Correct!',nb_err:'Wrong',nb_miss:'Miss',
+  nb_ok:'✓ Correct!',nb_err:'✕ Wrong',nb_miss:'⏱ Missed',
   res_t:'Results',res_ty:'Thank you so much for participating!',res_sv:'Your data has been saved.',
   mig_y:'Migraine likely',mig_n:'Migraine indicator low',
   slp_b:'Poor sleep',slp_g:'Good sleep',
@@ -697,7 +705,7 @@ function scaleGroup(name,items,autoAdv=false){
 function numGrid(name,items,autoAdv=false){
   return `<div class="num-grid" id="g_${name}" data-g="${name}">
     ${items.map(o=>`<div class="num-chip" data-val="${o.v}" onclick="selNum(this,${autoAdv})">
-      <span>${o.v}</span><small>${o.s||''}</small>
+      <span>${o.d||o.v}</span><small>${o.s||''}</small>
     </div>`).join('')}
   </div>`;
 }
@@ -887,12 +895,50 @@ function s0(){
       </div>
     </div></div>
   </div></div>
-  <button class="btn btn-primary btn-full" onclick="S.step=1;render()">
+  <div class="card"><div class="card-inner">
+    <div class="eyebrow">${LANG==='en'?'Consent':LANG==='ru'?'Согласие':'Rozilik'}</div>
+    <div class="explain-box">
+      <p>${LANG==='en'
+        ?"Participation is completely voluntary and anonymous. This survey is open only to adolescents aged 12\u201318. You can stop at any point without any consequence, and no name, phone number, or other identifying information is ever collected. Your answers will only be used for academic research."
+        :LANG==='ru'
+        ?'Участие полностью добровольное и анонимное. Опрос предназначен только для подростков 12\u201318 лет. Вы можете остановиться в любой момент без каких-либо последствий, и мы не собираем имя, номер телефона или любую другую идентифицирующую информацию. Ваши ответы будут использованы только в академических целях.'
+        :"Ishtirok etish to'liq ixtiyoriy va anonim. Bu so'rovnoma faqat 12\u201318 yoshdagi o'smirlar uchun mo'ljallangan. Istalgan vaqtda hech qanday oqibatsiz to'xtatishingiz mumkin, va sizning ismingiz, telefon raqamingiz yoki boshqa shaxsni aniqlovchi ma'lumot hech qachon so'ralmaydi. Javoblaringiz faqat ilmiy tadqiqot maqsadida ishlatiladi."}</p>
+      <label class="consent-box" id="consent-box">
+        <input type="checkbox" id="consent-check" class="consent-cb">
+        <span>${LANG==='en'
+          ?"I confirm I am between 12\u201318 years old and I voluntarily agree to take part in this survey."
+          :LANG==='ru'
+          ?'Я подтверждаю, что мне от 12 до 18 лет, и добровольно соглашаюсь принять участие в этом опросе.'
+          :"Men 12\u201318 yosh oralig'idaman va ushbu so'rovnomada ixtiyoriy ravishda qatnashishga roziman."}</span>
+      </label>
+    </div>
+  </div></div>
+  <button class="btn btn-primary btn-full" onclick="startSurveyFromConsent()">
     ${t('start')}
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
   </button>
   <p style="text-align:center;margin-top:13px;font-size:12px;color:var(--muted2);">${t('vol')}</p>
   </div>`;
+}
+
+function startSurveyFromConsent(){
+  const cb=document.getElementById('consent-check');
+  if(!cb||!cb.checked){
+    toast('⚠️ '+(LANG==='en'?'Please confirm you agree to participate first':LANG==='ru'?'Пожалуйста, сначала подтвердите согласие на участие':"Iltimos, avval ishtirok etishga rozilik bildiring"),'var(--yellow)');
+    const box=document.getElementById('consent-box');
+    if(box){box.classList.add('shake');setTimeout(()=>box.classList.remove('shake'),500);}
+    return;
+  }
+  logSurveyStart();
+  S.step=1;render();
+}
+function logSurveyStart(){
+  // One anonymous ping per browser session, purely for a start-vs-completion funnel stat in the admin panel.
+  try{
+    if(sessionStorage.getItem('tadqiqot_start_logged')==='1')return;
+    sessionStorage.setItem('tadqiqot_start_logged','1');
+  }catch(e){}
+  try{fetch(apiUrl('/api/starts'),{method:'POST'}).catch(()=>{});}catch(e){}
 }
 
 // ═══ STEP 1: DEMOGRAPHICS ═════════════════════════════════════════════════
@@ -907,7 +953,7 @@ function s1(){
     <p style="margin-bottom:22px;">${t('demo_s')}</p>
     <div class="qs-block">
       <div class="qs first"><span class="qs-icon">📅</span>${t('age')}</div>
-      ${numGrid('age',[12,13,14,15,16,17,18].map(a=>({v:a.toString(),s:ageLabel})),true)}
+      ${numGrid('age',[12,13,14,15,16,17,18].map(a=>({v:a.toString(),s:ageLabel})).concat([{v:'18plus',d:'18+',s:''}]),true)}
     </div>
     <div class="qs-block" style="margin-top:22px;">
       <div class="qs"><span class="qs-icon">⚧️</span>${t('sex')}</div>
@@ -928,9 +974,30 @@ function s1(){
   </div></div>`;
 }
 function subDemo(){
+  const age=getVal('age');
+  if(!age){toast('⚠️ '+t('age'),`var(--yellow)`);return;}
+  if(age==='18plus'){S.demo.age=age;clearDraft();sBlocked('age');return;}
   const fs=[['age',t('age')],['sex',t('sex')],['grade',t('grade')],['ha',t('hnow')]];
   for(const [k,lbl] of fs){const v=getVal(k);if(!v){toast('⚠️ '+lbl,`var(--yellow)`);return;}S.demo[k]=v;}
   S.step=2;render();
+}
+function sBlocked(reason){
+  const isAge=reason==='age';
+  const icon=isAge?'🔞':'🔒';
+  const title=isAge
+    ?(LANG==='en'?"Sorry, you can't participate":LANG==='ru'?'Извините, вы не можете участвовать':"Uzr, siz qatnasha olmaysiz")
+    :(LANG==='en'?"You've already participated":LANG==='ru'?'Вы уже приняли участие':"Siz bu so'rovnomada qatnashib bo'lgansiz");
+  const body=isAge
+    ?(LANG==='en'?'This study is only open to adolescents aged 12–18. Thank you very much for your interest!':LANG==='ru'?'Это исследование предназначено только для подростков в возрасте 12–18 лет. Большое спасибо за интерес!':"Bu tadqiqot faqat 12–18 yoshdagi o'smirlar uchun mo'ljallangan. Qiziqishingiz uchun katta rahmat!")
+    :(LANG==='en'?'Each person may complete this survey only once, so the data stays accurate. Thank you so much for helping with this research!':LANG==='ru'?'Каждый участник может пройти этот опрос только один раз — это важно для точности данных. Большое спасибо за помощь в исследовании!':"Har bir kishi ushbu so'rovnomada faqat bir marta qatnasha oladi — bu ma'lumotlar aniqligi uchun muhim. Tadqiqotga yordamingiz uchun katta rahmat!");
+  app.innerHTML=`<div class="screen active">
+    <div class="card"><div class="card-inner" style="text-align:center;padding:40px 22px;">
+      <div style="font-size:54px;margin-bottom:16px;">${icon}</div>
+      <h2 style="margin-bottom:10px;">${title}</h2>
+      <p style="max-width:380px;margin:0 auto;">${body}</p>
+    </div></div>
+  </div>`;
+  window.scrollTo(0,0);
 }
 
 // ═══ STEP 2: ID-MIGRAINE ══════════════════════════════════════════════════
@@ -1069,6 +1136,10 @@ function s5(){
       <div class="qs"><span class="qs-icon">🔥</span>${t('p9q')}</div>
       ${optGroup('p9',t('p9o').map((l,i)=>({v:i.toString(),l,e:['💪','🙂','😐','😩'][i]})),true)}
     </div>
+    <div class="qs-block qc-block" style="margin-top:22px;">
+      <div class="qs"><span class="qs-icon">🎯</span>${LANG==='en'?"To show you're reading carefully, please select \"Yes\" here:":LANG==='ru'?'Чтобы показать, что вы внимательно читаете, выберите здесь «Да»:':'Diqqat bilan o\u2018qiyotganingizni ko\u2018rsatish uchun, shu yerda "Ha" ni tanlang:'}</div>
+      ${pillGroup('qc_attn','✅','❌',t('yes'),t('no'),true)}
+    </div>
   </div></div>
   <div class="brow">
     <button class="btn btn-ghost" onclick="S.step=4;render()">${t('back')}</button>
@@ -1077,6 +1148,8 @@ function s5(){
 }
 function subP3(){
   for(const k of['p6','p7','p8','p9']){const v=getVal(k);if(v===null){toast('⚠️ '+t('fill'),'var(--yellow)');return;}S.psqi[k]=parseInt(v);}
+  const attn=getVal('qc_attn');
+  S.qc=S.qc||{};S.qc.attnPass=attn==='ha';S.qc.attnAnswered=attn!==null;
   S.psqi.global=calcPSQI();S.step=6;render();
 }
 
@@ -1398,16 +1471,25 @@ async function finishNback(){
   const stats=nbStats(S.nback.trials);
   S.nback={...S.nback,...stats,trials:S.nback.trials};
   S.pid=await assignParticipantId();
+  const durSec=Math.round((Date.now()-S.t0)/1000);
+  const qc={
+    attnPass:!!(S.qc&&S.qc.attnPass),
+    attnAnswered:!!(S.qc&&S.qc.attnAnswered),
+    fast:durSec<180 // under 3 minutes for a ~15-20 min survey is almost certainly rushed
+  };
   const payload={
-    pid:S.pid,date:new Date().toISOString(),lang:LANG,dur:Math.round((Date.now()-S.t0)/1000),
+    pid:S.pid,date:new Date().toISOString(),lang:LANG,dur:durSec,
     demo:S.demo,migraine:S.migraine,
     psqi:{global:S.psqi.global,...S.psqi},
-    nback:{acc:stats.acc,hitAcc:stats.hitAcc,dprime:stats.dprime,bias:stats.bias,meanRT:stats.meanRT,medRT:stats.medRT,hits:stats.hits,misses:stats.misses,fa:stats.fa,cr:stats.cr}
+    nback:{acc:stats.acc,hitAcc:stats.hitAcc,dprime:stats.dprime,bias:stats.bias,meanRT:stats.meanRT,medRT:stats.medRT,hits:stats.hits,misses:stats.misses,fa:stats.fa,cr:stats.cr},
+    qc
   };
   const saved=await saveData(payload);
   if(!saved.shared){
     toast('⚠️ '+(LANG==='en'?'Saved only on this device - start the collector server for shared data':LANG==='ru'?'Сохранено только на этом устройстве':'Faqat shu qurilmada saqlandi'),'var(--yellow)');
   }
+  try{localStorage.setItem('tadqiqot_done','1');}catch(e){}
+  clearDraft();
   S.step=8;render();
 }
 
@@ -1528,6 +1610,7 @@ function copyPid(){
   }
 }
 function resetSurvey(){
+  try{if(localStorage.getItem('tadqiqot_done')==='1'){sBlocked('repeat');return;}}catch(e){}
   S.step=0;S.pid='p'+Date.now()+Math.random().toString(36).slice(2,5);
   S.t0=Date.now();S.demo={};S.migraine={};S.psqi={};
   S.nback={trials:[],dprime:null,acc:null,medRT:null,meanRT:null,bias:null,hits:0,misses:0,fa:0,cr:0};
@@ -1593,7 +1676,8 @@ const ADMIN_LABELS={
   nback_accuracy_pct:'N-back Accuracy (%)',nback_hit_accuracy:'N-back Hit Rate (%)',
   nback_dprime:'D-Prime (d\u2032)',nback_criterion_c:'Criterion (c)',
   nback_mean_rt_ms:'Mean Reaction Time (ms)',nback_median_rt_ms:'Median Reaction Time (ms)',
-  nback_hits:'Hits',nback_misses:'Misses',nback_false_alarms:'False Alarms',nback_correct_rejections:'Correct Rejections'
+  nback_hits:'Hits',nback_misses:'Misses',nback_false_alarms:'False Alarms',nback_correct_rejections:'Correct Rejections',
+  qc_attention_check_passed:'Attention Check Passed',qc_fast_completion_flag:'Fast-Completion Flag'
 };
 async function adminGo(){
   if(!ADMIN_UNLOCKED){
@@ -1610,10 +1694,23 @@ async function renderAdmin(){
   const rows=ADMIN_ROWS;
   const badgeClass=STORE_STATUS.api?'ok':'warn';
   const badgeText=STORE_STATUS.api?`Shared collector connected · ${STORE_STATUS.apiCount} server rows`:`Local/browser data only · start the collector server for all devices`;
+  let funnelHtml='';
+  if(STORE_STATUS.api){
+    try{
+      const res=await fetch(apiUrl('/api/stats'),{cache:'no-store'});
+      if(res.ok){
+        const j=await res.json();
+        const rate=j.starts>0?Math.round((j.completions/j.starts)*100):null;
+        funnelHtml=`<p style="margin-top:4px;">${LANG==='en'?'Started':'Boshlangan'}: <strong>${j.starts}</strong> · ${LANG==='en'?'Completed':'Tugallangan'}: <strong>${j.completions}</strong>${rate!==null?` · ${LANG==='en'?'Completion rate':"Tugallash darajasi"}: <strong>${rate}%</strong>`:''}</p>`;
+      }
+    }catch(e){}
+  }
+  const flagged=rows.filter(r=>r.qc&&(r.qc.attnPass===false||r.qc.fast)).length;
   const s=`<div class="card"><div class="card-inner">
     <div class="eyebrow" style="margin-bottom:10px;">Researcher Panel</div>
     <h2>📊 Dataset</h2>
-    <p style="margin-top:6px;">Total: <strong>${rows.length}</strong> · Migraine likely: <strong>${rows.filter(r=>r.migraine?.likely).length}</strong> · Poor sleep: <strong>${rows.filter(r=>(r.psqi?.global||0)>5).length}</strong></p>
+    <p style="margin-top:6px;">Total: <strong>${rows.length}</strong> · Migraine likely: <strong>${rows.filter(r=>r.migraine?.likely).length}</strong> · Poor sleep: <strong>${rows.filter(r=>(r.psqi?.global||0)>5).length}</strong>${flagged>0?` · ⚠️ Flagged: <strong>${flagged}</strong>`:''}</p>
+    ${funnelHtml}
     <div class="store-badge ${badgeClass}">${STORE_STATUS.api?'●':'▲'} ${badgeText}</div>
     <div class="admin-tools">
       <button class="btn btn-primary" onclick="dlXLSX(ADMIN_ROWS)">📥 Excel (XLSX)</button>
@@ -1627,13 +1724,14 @@ async function renderAdmin(){
     <input type="text" class="admin-search" id="admin-search" placeholder="${LANG==='en'?'Search by participant ID, age, sex…':'Qidirish: ID, yosh, jinsi…'}" oninput="filterAdmin(this.value)">
     <div class="admin-note">
       To collect everyone in one dataset, run <strong>server.js</strong> and share the shown network URL. Opening this HTML directly still works, but each device will only keep its own backup unless the collector is running.<br>
-      This table shows summary scores only (ID-Migraine, PSQI, N-back). Every individual question answer is included in the Excel/CSV/JSON export.
+      This table shows summary scores only (ID-Migraine, PSQI, N-back). Every individual question answer is included in the Excel/CSV/JSON export.<br>
+      "Flagged" rows failed the attention check or were completed suspiciously fast (under 3 minutes) — worth a second look before analysis.
     </div>
   </div></div>`;
   app.innerHTML=s+`<div class="card"><div class="card-inner"><div class="tbl-wrap" id="admin-tbl-wrap"></div></div></div>`;
   renderAdminTable();
 }
-const ADMIN_SUMMARY_KEYS=['participant_id','date','age','sex','language','duration_sec','mig_score','mig_likely','psqi_global','nback_accuracy_pct','nback_dprime','nback_criterion_c','nback_mean_rt_ms','nback_median_rt_ms'];
+const ADMIN_SUMMARY_KEYS=['participant_id','date','age','sex','language','duration_sec','mig_score','mig_likely','psqi_global','nback_accuracy_pct','nback_dprime','nback_criterion_c','nback_mean_rt_ms','nback_median_rt_ms','qc_attention_check_passed','qc_fast_completion_flag'];
 function renderAdminTable(){
   const wrap=document.getElementById('admin-tbl-wrap');
   if(!wrap)return;
@@ -1641,12 +1739,14 @@ function renderAdminTable(){
   const keys=ADMIN_SUMMARY_KEYS;
   const q=ADMIN_FILTER;
   const filtered=q?flat.filter(r=>Object.values(r).some(v=>String(v??'').toLowerCase().includes(q))):flat;
-  const head=`<th>${LANG==='en'?'Delete':'Delete info'}</th>`+keys.map(k=>`<th>${esc(ADMIN_LABELS[k]||k)}</th>`).join('');
+  const head=`<th>${LANG==='en'?'Delete':'O\u2018chirish'}</th>`+keys.map(k=>`<th>${esc(ADMIN_LABELS[k]||k)}</th>`).join('');
   const body=filtered.map(r=>{
     const cells=keys.map(k=>{
       let v=r[k];
       if(k==='mig_likely')v=v?'Yes':'No';
       if(k==='date'&&v)v=new Date(v).toLocaleString();
+      if(k==='qc_attention_check_passed')return `<td>${v?'✅':'⚠️ '+(LANG==='en'?'Failed':LANG==='ru'?'Не прошёл':"O'tmadi")}</td>`;
+      if(k==='qc_fast_completion_flag')return `<td>${v?'⚡ '+(LANG==='en'?'Fast':LANG==='ru'?'Быстро':'Tez'):'✅'}</td>`;
       return `<td>${esc(v)}</td>`;
     }).join('');
     const delTitle=LANG==='en'?'Delete participant':'Ishtirokchini o\u2018chirish';
@@ -1758,9 +1858,49 @@ function flattenRow(r){
     nback_hits:r.nback?.hits,
     nback_misses:r.nback?.misses,
     nback_false_alarms:r.nback?.fa,
-    nback_correct_rejections:r.nback?.cr
+    nback_correct_rejections:r.nback?.cr,
+    qc_attention_check_passed:r.qc?.attnPass,
+    qc_fast_completion_flag:r.qc?.fast
   };
 }
+const CODEBOOK=[
+  {Variable:'participant_id',Description:'Unique participant identifier, assigned sequentially (participant1, participant2, ...)',Range:'text'},
+  {Variable:'date',Description:'Timestamp the response was submitted (ISO 8601, UTC)',Range:'datetime'},
+  {Variable:'language',Description:'Language the participant took the survey in',Range:'uz / ru / en'},
+  {Variable:'duration_sec',Description:'Total time taken to complete the whole survey',Range:'seconds'},
+  {Variable:'age',Description:'Self-reported age. "18plus" rows never reach this file \u2014 they are blocked before saving.',Range:'12\u201318'},
+  {Variable:'sex',Description:'Self-reported sex',Range:'f / m / pns (prefer not to say)'},
+  {Variable:'grade',Description:'Self-reported school grade/form',Range:'6\u201311'},
+  {Variable:'headache_today',Description:'Whether the participant had a headache on the day of testing \u2014 use this to separate interictal (headache-free) responses from acute ones',Range:'ha (yes) / yoq (no)'},
+  {Variable:'mig_q1',Description:'ID-Migraine screener Q1: headache limited activities for \u22651 day in the last 3 months',Range:'ha / yoq'},
+  {Variable:'mig_q2',Description:'ID-Migraine screener Q2: nausea or upset stomach with headache',Range:'ha / yoq'},
+  {Variable:'mig_q3',Description:'ID-Migraine screener Q3: light bothered you during headache',Range:'ha / yoq'},
+  {Variable:'mig_score',Description:'Count of "yes" answers across mig_q1\u2013q3',Range:'0\u20133'},
+  {Variable:'mig_likely',Description:'TRUE if mig_score \u2265 2 (ID-Migraine\u2019s standard cutoff for a probable migraine diagnosis)',Range:'TRUE / FALSE'},
+  {Variable:'mig_freq',Description:'Self-reported headache frequency category',Range:'categorical'},
+  {Variable:'psqi_q1_bedtime',Description:'Usual bedtime (24h, HH:MM)',Range:'time'},
+  {Variable:'psqi_q2_latency',Description:'PSQI component 2 input: minutes to fall asleep',Range:'0\u20133 coded band'},
+  {Variable:'psqi_q3_waketime',Description:'Usual wake time (24h, HH:MM)',Range:'time'},
+  {Variable:'psqi_q4_duration',Description:'PSQI component 3 input: hours of actual sleep category',Range:'0\u20133 coded band'},
+  {Variable:'psqi_5a..5i',Description:'PSQI component 5 sub-items: frequency of 9 specific sleep disturbances in the last month (couldn\u2019t sleep in 30min, woke at night, bathroom, breathing trouble, cough/snore, too cold, too hot, bad dreams, pain)',Range:'0=not in past month \u2013 3=\u22653x/week'},
+  {Variable:'psqi_p6',Description:'PSQI component 6: self-rated overall sleep quality',Range:'0=very good \u2013 3=very bad'},
+  {Variable:'psqi_p7',Description:'PSQI component 6b: frequency of using sleep medication',Range:'0\u20133'},
+  {Variable:'psqi_p8',Description:'PSQI component 7 input: trouble staying awake during the day',Range:'0\u20133'},
+  {Variable:'psqi_p9',Description:'PSQI component 7 input: enthusiasm/energy trouble',Range:'0\u20133'},
+  {Variable:'psqi_global',Description:'Pittsburgh Sleep Quality Index global score (sum of all 7 components). Standard cutoff: >5 = poor sleep quality',Range:'0\u201321'},
+  {Variable:'nback_accuracy_pct',Description:'Overall percentage of correct responses (hits + correct rejections) on the 2-back task',Range:'0\u2013100%'},
+  {Variable:'nback_hit_accuracy',Description:'Percentage of true matches (2-back targets) correctly caught',Range:'0\u2013100%'},
+  {Variable:'nback_dprime',Description:'Signal detection sensitivity (d\u2032), computed from hit rate and false-alarm rate via the inverse normal CDF. This is the primary working-memory outcome measure \u2014 higher = better discrimination, independent of response bias',Range:'typically -1 to 4'},
+  {Variable:'nback_criterion_c',Description:'Response bias/criterion (c). Positive = conservative responder (misses more than false-alarms), negative = liberal responder (false-alarms more than misses), 0 = unbiased',Range:'typically -1 to 1'},
+  {Variable:'nback_mean_rt_ms',Description:'Mean reaction time across all responded trials',Range:'milliseconds'},
+  {Variable:'nback_median_rt_ms',Description:'Median reaction time (more robust to outliers than the mean)',Range:'milliseconds'},
+  {Variable:'nback_hits',Description:'Count of correctly identified 2-back matches',Range:'count'},
+  {Variable:'nback_misses',Description:'Count of 2-back matches the participant failed to press for',Range:'count'},
+  {Variable:'nback_false_alarms',Description:'Count of non-matches the participant incorrectly pressed for',Range:'count'},
+  {Variable:'nback_correct_rejections',Description:'Count of non-matches correctly left unpressed',Range:'count'},
+  {Variable:'qc_attention_check_passed',Description:'Data-quality flag: TRUE if the participant correctly answered the instructed-response item ("select Yes here"). FALSE/blank suggests low attention \u2014 consider reviewing before including in analysis',Range:'TRUE / FALSE'},
+  {Variable:'qc_fast_completion_flag',Description:'Data-quality flag: TRUE if total duration was under 3 minutes, which is implausibly fast for this ~15\u201320 minute survey and likely indicates a rushed/careless response',Range:'TRUE / FALSE'},
+];
 function dlXLSX(rows){
   if(!rows.length){toast('No data','var(--red)');return;}
   try{
@@ -1770,15 +1910,9 @@ function dlXLSX(rows){
     // column widths
     ws['!cols']=Object.keys(flat[0]).map(k=>({wch:Math.max(k.length,12)}));
     XLSX.utils.book_append_sheet(wb,ws,'Survey Data');
-    // Info sheet
-    const info=[
-      {Variable:'participant_id',Description:'Unique participant identifier'},
-      {Variable:'mig_dprime',Description:'d-prime: signal detection sensitivity (hits vs false alarms)'},
-      {Variable:'nback_criterion_c',Description:'Response criterion c: positive=conservative, negative=liberal'},
-      {Variable:'psqi_global',Description:'PSQI global score: >5 = poor sleep quality'},
-      {Variable:'mig_likely',Description:'TRUE if ID-Migraine score >= 2 (migraine likely)'},
-    ];
-    const wsInfo=XLSX.utils.json_to_sheet(info);
+    // Info / codebook sheet \u2014 every exported column, explained
+    const wsInfo=XLSX.utils.json_to_sheet(CODEBOOK);
+    wsInfo['!cols']=[{wch:26},{wch:70},{wch:16}];
     XLSX.utils.book_append_sheet(wb,wsInfo,'Codebook');
     XLSX.writeFile(wb,'survey_data.xlsx');
   }catch(e){toast('XLSX error: '+e.message,'var(--red)');}
@@ -1794,6 +1928,51 @@ function dlJSON(rows){dl(new Blob([JSON.stringify(rows,null,2)],{type:'applicati
 function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.appendChild(a);a.click();document.body.removeChild(a);}
 
 // ═══ RENDER ════════════════════════════════════════════════════════════════
+function saveDraft(){
+  if(S.step<=0||S.step>=7)return; // nothing meaningful to resume before step 1 or once the memory task starts
+  try{
+    localStorage.setItem('tadqiqot_draft',JSON.stringify({
+      step:S.step,demo:S.demo,migraine:S.migraine,psqi:S.psqi,lang:LANG,t0:S.t0,savedAt:Date.now()
+    }));
+  }catch(e){}
+}
+function clearDraft(){try{localStorage.removeItem('tadqiqot_draft');}catch(e){}}
+function showResumePrompt(draft){
+  const mins=Math.max(1,Math.round((Date.now()-(draft.savedAt||Date.now()))/60000));
+  const timeAgo=mins<60
+    ?(LANG==='en'?`${mins} min ago`:LANG==='ru'?`${mins} мин назад`:`${mins} daqiqa oldin`)
+    :(LANG==='en'?`${Math.round(mins/60)}h ago`:LANG==='ru'?`${Math.round(mins/60)} ч назад`:`${Math.round(mins/60)} soat oldin`);
+  app.innerHTML=`<div class="screen active"><div class="card"><div class="card-inner" style="text-align:center;padding:38px 22px;">
+    <div style="font-size:50px;margin-bottom:14px;">👋</div>
+    <h2 style="margin-bottom:10px;">${LANG==='en'?'Welcome back!':LANG==='ru'?'С возвращением!':'Xush kelibsiz!'}</h2>
+    <p style="max-width:360px;margin:0 auto;">${LANG==='en'?`You have an unfinished survey from ${timeAgo}. Continue where you left off?`:LANG==='ru'?`У вас есть незавершённый опрос (${timeAgo}). Продолжить с того места, где остановились?`:`Sizda tugallanmagan so'rovnoma bor (${timeAgo}). Qoldirgan joyingizdan davom etasizmi?`}</p>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap;">
+      <button class="btn btn-ghost" onclick="discardDraftAndStart()">${LANG==='en'?'Start over':LANG==='ru'?'Начать заново':'Qaytadan boshlash'}</button>
+      <button class="btn btn-primary" onclick="resumeDraft()">${LANG==='en'?'Continue →':LANG==='ru'?'Продолжить →':'Davom etish →'}</button>
+    </div>
+  </div></div></div>`;
+  window.scrollTo(0,0);
+}
+function resumeDraft(){
+  try{
+    const raw=localStorage.getItem('tadqiqot_draft');
+    if(raw){
+      const d=JSON.parse(raw);
+      S.demo=d.demo||{};S.migraine=d.migraine||{};S.psqi=d.psqi||{};
+      S.step=Math.min(Math.max(d.step||1,1),6);
+      S.t0=d.t0||Date.now();
+      if(d.lang&&['uz','ru','en'].includes(d.lang)){
+        LANG=d.lang;
+        ['uz','ru','en'].forEach(x=>{const el=document.getElementById('lo-'+x);if(el)el.classList.toggle('active',x===d.lang);});
+      }
+    }
+  }catch(e){}
+  render();
+}
+function discardDraftAndStart(){
+  clearDraft();
+  S.step=0;render();
+}
 function pinTop(){
   // Force the window back to the top. Called more than once on purpose \u2014
   // this is a defensive net against any late layout shift (wheel positioning,
@@ -1806,13 +1985,20 @@ function render(){
   const steps=[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9];
   if(S.step===7){s7();setTimeout(()=>{if(nbSeq.length>0&&nbIdx===0)runTrial();},160);}
   else if(steps[S.step])steps[S.step]();
+  saveDraft();
   pinTop();
   requestAnimationFrame(()=>{pinTop();requestAnimationFrame(pinTop);});
   setTimeout(pinTop,60);
   setTimeout(pinTop,180);
   setTimeout(pinTop,400);
 }
-render();
+let ALREADY_DONE=false;
+try{ALREADY_DONE=localStorage.getItem('tadqiqot_done')==='1';}catch(e){}
+let RESUME_DRAFT=null;
+try{const raw=localStorage.getItem('tadqiqot_draft');if(raw)RESUME_DRAFT=JSON.parse(raw);}catch(e){}
+if(ALREADY_DONE){sBlocked('repeat');}
+else if(RESUME_DRAFT&&RESUME_DRAFT.step>0){showResumePrompt(RESUME_DRAFT);}
+else{render();}
 </script>
 </body>
 </html>
