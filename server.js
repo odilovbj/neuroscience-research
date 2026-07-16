@@ -9,6 +9,7 @@ const HTML_FILE = path.join(ROOT, "full.html");
 const DATA_FILE = path.join(ROOT, "survey-responses.json");
 const COUNTER_FILE = path.join(ROOT, "participant-counter.json");
 const STARTS_FILE = path.join(ROOT, "survey-starts.json");
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "qwerty#3825";
 const BACKUP_DIR = path.join(ROOT, "backups");
 const MAX_BACKUPS = 25;
 
@@ -166,6 +167,16 @@ const server = http.createServer(async (req, res) => {
 
   if (url.pathname === "/api/next-id" && req.method === "GET") {
     return send(res, 200, JSON.stringify({ id: nextParticipantId() }), { "Content-Type": "application/json; charset=utf-8" });
+  }
+
+  if (url.pathname === "/api/admin-auth" && req.method === "POST") {
+    try {
+      const body = JSON.parse(await readRequestBody(req));
+      const ok = typeof body.password === "string" && body.password === ADMIN_PASSWORD;
+      return send(res, 200, JSON.stringify({ ok }), { "Content-Type": "application/json; charset=utf-8" });
+    } catch (err) {
+      return send(res, 400, JSON.stringify({ ok: false, error: err.message }), { "Content-Type": "application/json; charset=utf-8" });
+    }
   }
 
   if (url.pathname === "/api/starts" && req.method === "POST") {
