@@ -320,6 +320,7 @@ p{color:var(--sub);line-height:1.7;font-size:.98rem;}
 /* ── ADMIN ── */
 .admin-btn{position:fixed;bottom:14px;right:14px;z-index:300;background:rgba(0,0,0,.4);border:1px solid var(--border);backdrop-filter:blur(20px);border-radius:12px;padding:7px 14px;font-size:11px;color:var(--muted2);cursor:pointer;transition:all .2s;}
 .copyright{position:fixed;bottom:16px;left:14px;z-index:290;font-size:10px;color:var(--muted2);opacity:.75;pointer-events:none;max-width:60%;line-height:1.4;}
+.admin-btn:hover{color:var(--text);border-color:var(--border2);}
 .admin-tools{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
 .admin-note{margin-top:12px;padding:12px 14px;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.22);border-radius:12px;font-size:12.5px;color:var(--muted);line-height:1.55;}
 .admin-search{width:100%;margin-top:14px;padding:11px 16px;border-radius:12px;border:1px solid var(--border2));background:var(--card-hi);color:var(--text);font-family:inherit;font-size:14px;outline:none;transition:border-color .2s,background .2s;box-shadow:0 3px 10px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.1);}
@@ -994,8 +995,10 @@ function s0(){
   <p style="text-align:center;margin-top:13px;font-size:12px;color:var(--muted2);">${t('vol')}</p>
   <div class="proj-footer">
     <strong>${LANG==='en'?'About this project':LANG==='ru'?'Об этом проекте':'Loyiha haqida'}</strong><br>
-    ${LANG==='en'?'Researcher':LANG==='ru'?'Исследователь':'Tadqiqotchi'}: <span class="proj-edit">Bekzod Odilov</span> ·
-    ${LANG==='en'?'Institution':LANG==='ru'?'Учреждение':'Muassasa'}: <span class="proj-edit">Specialized School N1 in Navoi City</span> ·
+    ${LANG==='en'?'Researcher':LANG==='ru'?'Исследователь':'Tadqiqotchi'}: <span class="proj-edit">[Your Name]</span> ·
+    ${LANG==='en'?'Institution':LANG==='ru'?'Учреждение':'Muassasa'}: <span class="proj-edit">[Your School / University]</span> ·
+    ${LANG==='en'?'Advisor':LANG==='ru'?'Научный руководитель':'Ilmiy rahbar'}: <span class="proj-edit">[Advisor Name]</span>
+  </div>
   </div>`;
 }
 
@@ -1799,19 +1802,13 @@ function s9(){
         ?"You just helped us look at whether poor sleep might explain part of why some teens with migraines have more difficulty with tasks like the memory game you just played \u2014 not just the pain itself. If we're right, that matters: it means better sleep habits could genuinely help, alongside (not instead of) any medical treatment for migraine."
         :LANG==='ru'
         ?'Вы только что помогли нам изучить, может ли плохой сон объяснять часть того, почему у некоторых подростков с мигренью бывает сложнее справляться с такими заданиями, как игра на память, которую вы только что прошли \u2014 а не только сама боль. Если мы правы, это важно: значит, улучшение сна может реально помочь, наряду с лечением мигрени, а не вместо него.'
-        :"Siz hozir bizga bir muhim narsani tushunishga yordam berdingiz: nega migreni bor ba’zi o‘smirlar xotira yoki diqqat talab qiladigan vazifalarda qiynaladi? Bu faqat og‘riq sababmi yoki yomon uyqu ham bunga ta’sir qiladimi — shuni bilishga harakat qilyapmiz.
-
-Agar bizning fikrimiz to‘g‘ri chiqsa, bu juda muhim. Bu shuni anglatadiki, yaxshi uyqu odatlari migrenni to‘liq davolamasa ham, unga qo‘shimcha ravishda yordam berishi mumkin.
-
-Yana bir muhim narsa: agar bosh og‘rig‘i yoki uyqu muammolari sizda tez-tez bo‘lsa va hayotingizga ta’sir qilayotgan bo‘lsa, bu haqida ota-onangiz yoki shifokorga aytish kerak. Bu so‘rovnoma faqat tadqiqot uchun, tibbiy maslahat emas. Lekin bosh og‘rig‘i va uyqu muammolari ko‘pincha davolanishi mumkin."}
+        :"Siz hozirgina bizga migreni bor ba'zi o'smirlarning xotira o'yini kabi vazifalarda nega ko'proq qiynalishini \u2014 shunchaki og'riqning o'zi emas \u2014 yomon uyqu qisman tushuntira oladimi yoki yo'qligini bilishga yordam berdingiz. Agar biz haq bo'lsak, bu muhim: yaxshi uyqu odatlari migren davosi o'rniga emas, balki unga qo'shimcha ravishda haqiqatan ham yordam berishi mumkinligini bildiradi."}
       </p>
       <p style="margin-top:12px;">${LANG==='en'
         ?"One more thing \u2014 if headaches or sleep are actually a real, ongoing problem for you (not just for this survey), it's worth mentioning to a parent or doctor. This survey is research, not medical advice, but frequent headaches or poor sleep are very treatable when someone knows about them."
         :LANG==='ru'
         ?'И ещё: если головные боли или сон \u2014 реальная, постоянная проблема лично для вас (а не просто ответ в опросе), стоит рассказать об этом родителям или врачу. Этот опрос \u2014 исследование, а не медицинская консультация, но частые головные боли или плохой сон хорошо поддаются лечению, если о них знают.'
-        :"Yana bir muhim narsa: agar bosh og‘rig‘i yoki uyqu muammolari sizda tez-tez bo‘lsa va bu sizning hayotingizga ta’sir qilayotgan bo‘lsa, bu haqida ota-onangizga aytish yoki shifokorga murojaat qilish yaxshi qaror bo‘ladi.
-
-Bu so‘rovnoma faqat tadqiqot uchun, tibbiy maslahat emas. Lekin shuni unutmangki, tez-tez bosh og‘rig‘i yoki yomon uyqu muammolari ko‘pincha davolanishi mumkin."}
+        :"Yana bir narsa \u2014 agar bosh og'rig'i yoki uyqu sizning shaxsan hayotingizda haqiqiy, doimiy muammo bo'lsa (shunchaki bu so'rovnomaga javob emas), buni ota-onangizga yoki shifokorga aytishga arziydi. Bu so'rovnoma tadqiqot, tibbiy maslahat emas \u2014 lekin tez-tez bosh og'rig'i yoki yomon uyqu, ular haqida bilinsa, juda yaxshi davolanadi."}
       </p>
     </div>
     <p class="muted2" style="margin-top:12px;text-align:center;">${LANG==='en'
