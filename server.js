@@ -374,7 +374,7 @@ const server = http.createServer(async (req, res) => {
   await restoreAllFromGitHub();
   server.listen(PORT, "0.0.0.0", () => {
     console.log("Survey collector running");
-    console.log(`Local:   http://localhost:${PORT}`);
+    console.log(`Local:   http://localhost:${8787}`);
     for (const url of networkUrls()) console.log(`Network: ${url}`);
     console.log("Responses will be saved to survey-responses.json" + (GH_ENABLED ? " and synced to GitHub" : " (LOCAL ONLY \u2014 will not survive a restart on Render's free tier)"));
   });
