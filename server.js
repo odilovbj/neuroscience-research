@@ -9,9 +9,110 @@ const HTML_FILE = path.join(ROOT, "full.html");
 const DATA_FILE = path.join(ROOT, "survey-responses.json");
 const COUNTER_FILE = path.join(ROOT, "participant-counter.json");
 const STARTS_FILE = path.join(ROOT, "survey-starts.json");
+const DROPOUTS_FILE = path.join(ROOT, "survey-dropouts.json");
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "qwerty#3825";
 const BACKUP_DIR = path.join(ROOT, "backups");
 const MAX_BACKUPS = 25;
+
+// ── GitHub-backed persistence ──────────────────────────────────────────────
+// Render's free tier (and any plan without an attached Persistent Disk) wipes
+// the local filesystem on every restart, redeploy, or spin-down. To survive
+// that, every write to a tracked JSON file is also pushed to a GitHub repo,
+// and on boot we try to restore from GitHub before falling back to empty.
+// Set these three env vars in Render's dashboard to enable it:
+//   GITHUB_TOKEN  - a personal access token with 'repo' (or fine-grained
+//                   Contents read/write) scope on the target repo
+//   GITHUB_REPO   - "yourusername/your-repo-name"
+//   GITHUB_BRANCH - optional, defaults to "main"
+const GH_TOKEN = process.env.GITHUB_TOKEN || "";
+const GH_REPO = process.env.GITHUB_REPO || "";
+const GH_BRANCH = process.env.GITHUB_BRANCH || "main";
+const GH_ENABLED = !!(GH_TOKEN && GH_REPO);
+const GH_SHA_CACHE = {}; // relPath -> last known blob sha, avoids an extra GET before every PUT
+
+function ghHeaders() {
+  return {
+    "Authorization": `Bearer ${GH_TOKEN}`,
+    "Accept": "application/vnd.github+json",
+    "Content-Type": "application/json",
+    "User-Agent": "survey-app-sync"
+  };
+}
+
+async function githubGetFile(relPath) {
+  if (!GH_ENABLED) return null;
+  try {
+    const url = `https://api.github.com/repos/${GH_REPO}/contents/${relPath}?ref=${encodeURIComponent(GH_BRANCH)}`;
+    const res = await fetch(url, { headers: ghHeaders() });
+    if (res.status === 404) return null;
+    if (!res.ok) { console.error(`GitHub GET ${relPath} failed:`, res.status); return null; }
+    const json = await res.json();
+    GH_SHA_CACHE[relPath] = json.sha;
+    return Buffer.from(json.content, "base64").toString("utf8");
+  } catch (err) {
+    console.error(`GitHub GET ${relPath} error:`, err.message);
+    return null;
+  }
+}
+
+async function githubPutFile(relPath, content) {
+  if (!GH_ENABLED) return false;
+  try {
+    const url = `https://api.github.com/repos/${GH_REPO}/contents/${relPath}`;
+    const body = {
+      message: `sync ${relPath} (${new Date().toISOString()})`,
+      content: Buffer.from(content, "utf8").toString("base64"),
+      branch: GH_BRANCH
+    };
+    if (GH_SHA_CACHE[relPath]) body.sha = GH_SHA_CACHE[relPath];
+    const res = await fetch(url, { method: "PUT", headers: ghHeaders(), body: JSON.stringify(body) });
+    if (res.status === 409 || res.status === 422) {
+      // sha mismatch (someone/something else updated the file) \u2014 refetch and retry once
+      const fresh = await fetch(url + `?ref=${encodeURIComponent(GH_BRANCH)}`, { headers: ghHeaders() });
+      if (fresh.ok) {
+        const j = await fresh.json();
+        GH_SHA_CACHE[relPath] = j.sha;
+        body.sha = j.sha;
+        const retry = await fetch(url, { method: "PUT", headers: ghHeaders(), body: JSON.stringify(body) });
+        if (retry.ok) { GH_SHA_CACHE[relPath] = (await retry.json()).content.sha; return true; }
+      }
+      return false;
+    }
+    if (!res.ok) { console.error(`GitHub PUT ${relPath} failed:`, res.status, await res.text()); return false; }
+    const j = await res.json();
+    GH_SHA_CACHE[relPath] = j.content.sha;
+    return true;
+  } catch (err) {
+    console.error(`GitHub PUT ${relPath} error:`, err.message);
+    return false;
+  }
+}
+
+async function restoreFromGitHubIfMissing(localFile, relPath) {
+  if (!GH_ENABLED) return;
+  try {
+    if (fs.existsSync(localFile)) return; // local copy already present, nothing to restore
+    const remote = await githubGetFile(relPath);
+    if (remote !== null) {
+      fs.writeFileSync(localFile, remote);
+      console.log(`Restored ${relPath} from GitHub (${remote.length} bytes)`);
+    }
+  } catch (err) {
+    console.error(`Restore ${relPath} from GitHub failed:`, err.message);
+  }
+}
+
+async function restoreAllFromGitHub() {
+  if (!GH_ENABLED) {
+    console.log("GitHub sync disabled (set GITHUB_TOKEN + GITHUB_REPO env vars to enable). Data will NOT survive a Render restart on the free tier.");
+    return;
+  }
+  console.log(`GitHub sync enabled -> ${GH_REPO}@${GH_BRANCH}`);
+  await restoreFromGitHubIfMissing(DATA_FILE, "survey-responses.json");
+  await restoreFromGitHubIfMissing(COUNTER_FILE, "participant-counter.json");
+  await restoreFromGitHubIfMissing(STARTS_FILE, "survey-starts.json");
+  await restoreFromGitHubIfMissing(DROPOUTS_FILE, "survey-dropouts.json");
+}
 
 const apiHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,9 +158,11 @@ function backupBeforeWrite() {
 
 function writeRows(rows) {
   backupBeforeWrite();
+  const content = JSON.stringify(rows, null, 2);
   const tmp = DATA_FILE + ".tmp";
-  fs.writeFileSync(tmp, JSON.stringify(rows, null, 2));
+  fs.writeFileSync(tmp, content);
   fs.renameSync(tmp, DATA_FILE);
+  githubPutFile("survey-responses.json", content).catch(() => {});
 }
 
 function readRequestBody(req) {
@@ -89,11 +192,13 @@ function nextParticipantId() {
   } catch (err) {
     n = readRows().length + 1;
   }
+  const content = JSON.stringify({ next: n + 1 }, null, 2);
   try {
-    fs.writeFileSync(COUNTER_FILE, JSON.stringify({ next: n + 1 }, null, 2));
+    fs.writeFileSync(COUNTER_FILE, content);
   } catch (err) {
     console.error("Could not persist participant counter:", err.message);
   }
+  githubPutFile("participant-counter.json", content).catch(() => {});
   return "participant" + n;
 }
 
@@ -134,12 +239,37 @@ function readStarts() {
 function appendStart() {
   const starts = readStarts();
   starts.push({ date: new Date().toISOString() });
+  const content = JSON.stringify(starts, null, 2);
   try {
-    fs.writeFileSync(STARTS_FILE, JSON.stringify(starts, null, 2));
+    fs.writeFileSync(STARTS_FILE, content);
   } catch (err) {
     console.error("Could not record survey start:", err.message);
   }
+  githubPutFile("survey-starts.json", content).catch(() => {});
   return starts.length;
+}
+
+function readDropouts() {
+  try {
+    if (!fs.existsSync(DROPOUTS_FILE)) return [];
+    const parsed = JSON.parse(fs.readFileSync(DROPOUTS_FILE, "utf8"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function appendDropout(entry) {
+  const dropouts = readDropouts();
+  dropouts.push({ date: new Date().toISOString(), step: entry.step ?? null, reason: entry.reason ?? null, durSec: entry.durSec ?? null });
+  const content = JSON.stringify(dropouts, null, 2);
+  try {
+    fs.writeFileSync(DROPOUTS_FILE, content);
+  } catch (err) {
+    console.error("Could not record dropout:", err.message);
+  }
+  githubPutFile("survey-dropouts.json", content).catch(() => {});
+  return dropouts.length;
 }
 
 function networkUrls() {
@@ -184,10 +314,22 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, JSON.stringify({ ok: true, total }), { "Content-Type": "application/json; charset=utf-8" });
   }
 
+  if (url.pathname === "/api/dropout" && req.method === "POST") {
+    try {
+      const raw = await readRequestBody(req);
+      const body = raw ? JSON.parse(raw) : {};
+      const total = appendDropout(body);
+      return send(res, 200, JSON.stringify({ ok: true, total }), { "Content-Type": "application/json; charset=utf-8" });
+    } catch (err) {
+      return send(res, 200, JSON.stringify({ ok: false }), { "Content-Type": "application/json; charset=utf-8" }); // never error out on a best-effort beacon
+    }
+  }
+
   if (url.pathname === "/api/stats" && req.method === "GET") {
     const starts = readStarts().length;
     const completions = readRows().length;
-    return send(res, 200, JSON.stringify({ starts, completions }), { "Content-Type": "application/json; charset=utf-8" });
+    const dropouts = readDropouts().length;
+    return send(res, 200, JSON.stringify({ starts, completions, dropouts }), { "Content-Type": "application/json; charset=utf-8" });
   }
 
   if (url.pathname.startsWith("/api/responses/") && req.method === "DELETE") {
@@ -228,9 +370,12 @@ const server = http.createServer(async (req, res) => {
   res.end("Not found");
 });
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log("Survey collector running");
-  console.log(`Local:   http://localhost:${PORT}`);
-  for (const url of networkUrls()) console.log(`Network: ${url}`);
-  console.log("Responses will be saved to survey-responses.json");
-});
+(async () => {
+  await restoreAllFromGitHub();
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log("Survey collector running");
+    console.log(`Local:   http://localhost:${PORT}`);
+    for (const url of networkUrls()) console.log(`Network: ${url}`);
+    console.log("Responses will be saved to survey-responses.json" + (GH_ENABLED ? " and synced to GitHub" : " (LOCAL ONLY \u2014 will not survive a restart on Render's free tier)"));
+  });
+})();
