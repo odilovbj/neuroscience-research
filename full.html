@@ -75,7 +75,7 @@ body{font-family:var(--font-body);color:var(--text);background:var(--bg);min-hei
 .pbar-shell{position:fixed;top:0;left:0;right:0;z-index:300;height:4px;background:var(--card);}
 .pbar{height:100%;background:var(--accent);transition:width .5s ease;}
 @keyframes shim{to{background-position:300%;}}
-.pbar-meta{position:fixed;top:10px;left:0;right:0;z-index:300;display:flex;justify-content:space-between;align-items:center;padding:0 14px;pointer-events:none;}
+.pbar-meta{position:fixed;top:10px;left:0;right:0;z-index:300;display:flex;justify-content:space-between;align-items:center;padding:0 54px 0 14px;pointer-events:none;}
 .pbar-pill{background:var(--card);border:2px solid var(--border2);border-radius:var(--rs);padding:5px 12px;font-size:11px;font-weight:700;color:var(--text);letter-spacing:.04em;font-family:var(--font-display);box-shadow:3px 3px 0 rgba(0,0,0,.5);}
 .pbar-pct{color:var(--accent);font-size:11px;font-weight:700;}
 
@@ -548,6 +548,8 @@ en:{title:'Migraine, Sleep & Memory',sub:'A scientific neurology study among ado
   home:'← Return to home',fill:'Please answer all questions',sel:'Select an answer'}
 };
 let LANG='uz';
+const SURVEY_VERSION='1.2.0'; // bump this when the question set or scoring logic changes
+const PREVIEW_MODE=(()=>{try{return new URLSearchParams(window.location.search).get('preview')==='1';}catch(e){return false;}})();
 function t(k){return TR[LANG][k]||TR.uz[k]||k;}
 
 // ═══ LANG SWITCHER ═══════════════════════════════════════════════════════
@@ -574,6 +576,7 @@ function setLang(l){
   LANG=l;
   ['uz','ru','en'].forEach(x=>document.getElementById('lo-'+x).classList.toggle('active',x===l));
   movePill(l);
+  if(PREVIEW_MODE){render();return;}
   let done=false;
   try{done=localStorage.getItem('tadqiqot_done')==='1';}catch(e){}
   const viewingOwnResults=S.step===8||S.step===9;
@@ -993,7 +996,7 @@ function s0(){
   <div class="proj-footer">
     <strong>${LANG==='en'?'About this project':LANG==='ru'?'Об этом проекте':'Loyiha haqida'}</strong><br>
     ${LANG==='en'?'Researcher':LANG==='ru'?'Исследователь':'Tadqiqotchi'}: <span class="proj-edit">Bekzod Odilov</span> ·
-    ${LANG==='en'?'Institution':LANG==='ru'?'Учреждение':'Muassasa'}: <span class="proj-edit">Specialized School №1 in Navoi City</span> ·
+    ${LANG==='en'?'Institution':LANG==='ru'?'Учреждение':'Muassasa'}: <span class="proj-edit">Specialized School N1 in Navoi City</span> ·
   </div>
   </div>`;
 }
@@ -1009,8 +1012,26 @@ function startSurveyFromConsent(){
   logSurveyStart();
   S.step=1;render();
 }
+function logDropout(reason){
+  if(PREVIEW_MODE)return;
+  if(!(S.step>=1&&S.step<=7))return; // only mid-survey abandonment is interesting
+  let done=false;
+  try{done=localStorage.getItem('tadqiqot_done')==='1';}catch(e){}
+  if(done)return; // they finished; this isn't a dropout
+  const body=JSON.stringify({step:S.step,reason:reason||null,durSec:Math.round((Date.now()-S.t0)/1000)});
+  try{
+    const url=apiUrl('/api/dropout');
+    if(navigator.sendBeacon){
+      navigator.sendBeacon(url,new Blob([body],{type:'application/json'}));
+    }else{
+      fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body,keepalive:true}).catch(()=>{});
+    }
+  }catch(e){}
+}
+window.addEventListener('pagehide',()=>logDropout('closed'));
 function logSurveyStart(){
   // One anonymous ping per browser session, purely for a start-vs-completion funnel stat in the admin panel.
+  if(PREVIEW_MODE)return;
   try{
     if(sessionStorage.getItem('tadqiqot_start_logged')==='1')return;
     sessionStorage.setItem('tadqiqot_start_logged','1');
@@ -1267,6 +1288,7 @@ function s6(){
     <h2 style="margin-bottom:8px;">${t('nb_t')}</h2>
     <p style="margin-bottom:14px;">${t('nb_s')}</p>
     <div class="nb-oneliner">${LANG==='en'?'💡 In one line: letters appear one by one — press the button only when the current letter is the SAME as the one shown 2 letters ago.':LANG==='ru'?'💡 Одной фразой: буквы появляются одна за другой — нажимайте кнопку только тогда, когда текущая буква совпадает с буквой, показанной 2 шага назад.':"💡 Bir gap bilan: harflar birin-ketin chiqadi — hozirgi harf 2 ta OLDINGI harf bilan AYNAN bir xil bo'lsagina tugmani bosing."}</div>
+    ${window.innerWidth<360?`<p class="muted2" style="margin-top:10px;text-align:center;">📱 ${LANG==='en'?'Tip: this works best held upright with both thumbs free \u2014 a slightly bigger screen makes the letters easier to track.':LANG==='ru'?'Совет: удобнее держать телефон прямо, освободив оба больших пальца \u2014 на чуть большем экране буквы легче отслеживать.':"Maslahat: telefonni tik ushlab, ikkala bosh barmog'ingiz bo'sh bo'lsa qulayroq \u2014 kattaroq ekranda harflarni kuzatish osonroq."}</p>`:''}
     <div class="rule-panel" style="margin-top:14px;">
         <h3 style="margin-bottom:10px;">📐 ${LANG==='en'?'The Rule':LANG==='ru'?'Правило':'Qoidasi'}</h3>
         <p style="margin-bottom:14px;font-size:14.5px;">${t('nb_rule')}</p>
@@ -1279,11 +1301,37 @@ function s6(){
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;">
       ${[['🎓',LANG==='en'?'First':LANG==='ru'?'Сначала':'Avval',LANG==='en'?'8 · practice':LANG==='ru'?'8 · практика':'8 · mashq'],['🔤',LANG==='en'?'Then':LANG==='ru'?'Затем':'Keyin',LANG==='en'?'22 · real':LANG==='ru'?'22 · настоящий':'22 · asosiy'],['⏱️',LANG==='en'?'Duration':LANG==='ru'?'Время':'Vaqt','~3min']].map(([e,l,v])=>`<div style="background:var(--card-hi);border:1px solid var(--border2);box-shadow:0 3px 10px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.1);border-radius:13px;padding:13px 8px;text-align:center;"><div style="font-size:22px;margin-bottom:5px;">${e}</div><div style="font-size:9.5px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">${l}</div><div style="font-size:14px;font-weight:700;margin-top:3px;">${v}</div></div>`).join('')}
     </div>
+    <div class="qc-block" style="margin-top:16px;">
+      <div class="qs first" style="margin-top:0;"><span class="qs-icon">☕</span>${LANG==='en'?'Optional \u2014 helps us interpret your results:':'Ixtiyoriy \u2014 natijalaringizni to\u2018g\u2018ri tushunishga yordam beradi:'}</div>
+      <div class="qs" style="margin-top:10px;font-size:13px;">${LANG==='en'?'Sleep last night?':LANG==='ru'?'Сон прошлой ночью?':"Kecha necha soat uxladingiz?"}</div>
+      ${optGroup('ctx_sleep',[{v:'lt5',l:LANG==='en'?'< 5 hrs':'< 5 soat',e:'😵'},{v:'5to7',l:LANG==='en'?'5\u20137 hrs':'5\u20137 soat',e:'😪'},{v:'gt7',l:LANG==='en'?'7+ hrs':'7+ soat',e:'😊'}])}
+      <div class="qs" style="font-size:13px;">${LANG==='en'?'Any caffeine today (tea, coffee, energy drinks)?':LANG==='ru'?'Кофеин сегодня (чай, кофе, энергетики)?':"Bugun kofein iste'mol qildingizmi (choy, qahva, energetik)?"}</div>
+      ${pillGroup('ctx_caffeine','☕','🚫',t('yes'),t('no'))}
+      <div class="qs" style="font-size:13px;">${LANG==='en'?'Taking any regular medication?':LANG==='ru'?'Принимаете лекарства регулярно?':"Doimiy dori-darmon ichasizmi?"}</div>
+      ${pillGroup('ctx_meds','💊','🚫',t('yes'),t('no'))}
+    </div>
+    <label class="consent-box" id="nb-assent-box" style="margin-top:16px;">
+      <input type="checkbox" id="nb-assent-check" class="consent-cb">
+      <span>${LANG==='en'?"I understand this is a short memory task, my answers stay anonymous, and I can stop at any time.":LANG==='ru'?'Я понимаю, что это короткое задание на память, мои ответы анонимны, и я могу остановиться в любой момент.':"Bu qisqa xotira topshirig'i ekanini, javoblarim anonim qolishini va istalgan vaqtda to'xtatishim mumkinligini tushunaman."}</span>
+    </label>
   </div></div>
   <div class="brow">
     <button class="btn btn-ghost" onclick="S.step=5;render()">${t('back')}</button>
-    <button class="btn btn-primary" onclick="startNback()">${t('nb_go')}</button>
+    <button class="btn btn-primary" onclick="startNbackGate()">${t('nb_go')}</button>
   </div></div>`;
+}
+function startNbackGate(){
+  const cb=document.getElementById('nb-assent-check');
+  if(!cb||!cb.checked){
+    toast('⚠️ '+(LANG==='en'?'Please confirm you understand first':LANG==='ru'?'Пожалуйста, сначала подтвердите':'Iltimos, avval tasdiqlang'),'var(--yellow)');
+    const box=document.getElementById('nb-assent-box');
+    if(box){box.classList.add('shake');setTimeout(()=>box.classList.remove('shake'),500);}
+    return;
+  }
+  S.demo.ctx_sleep=getVal('ctx_sleep');
+  S.demo.ctx_caffeine=getVal('ctx_caffeine');
+  S.demo.ctx_meds=getVal('ctx_meds');
+  startNback();
 }
 
 // ═══ N-BACK TASK (guided practice round, then the real scored test) ══════
@@ -1360,7 +1408,7 @@ function runTrial(){
   const show=nbMode==='practice'?NB_PRACTICE_SHOW:NB_SHOW;
   const blank=nbMode==='practice'?NB_PRACTICE_BLANK:NB_BLANK;
   if(nbIdx>=nbSeq.length){
-    if(nbMode==='practice'){showPracticeSummary();}else{finishNback();}
+    if(nbMode==='practice'){showPracticeSummary();}else{showFatiguePrompt();}
     return;
   }
   nbResponded=false;
@@ -1549,29 +1597,91 @@ async function assignParticipantId(){
   }catch(e){}
   return 'participant'+Date.now();
 }
-async function finishNback(){
+function getSessionMeta(){
+  let device='desktop';
+  const ua=navigator.userAgent||'';
+  if(/Mobi|Android(?!.*Tablet)|iPhone/i.test(ua))device='mobile';
+  else if(/iPad|Tablet|Android/i.test(ua))device='tablet';
+  let browser='other';
+  if(/Edg\//.test(ua))browser='edge';
+  else if(/Chrome\//.test(ua)&&!/Chromium/.test(ua))browser='chrome';
+  else if(/Firefox\//.test(ua))browser='firefox';
+  else if(/Safari\//.test(ua)&&!/Chrome/.test(ua))browser='safari';
+  return {
+    device,browser,
+    screenW:window.screen?window.screen.width:null,
+    screenH:window.screen?window.screen.height:null,
+    viewportW:window.innerWidth,
+    tz:Intl.DateTimeFormat().resolvedOptions().timeZone||null
+  };
+}
+function timeInBedHours(bedtime,waketime){
+  // bedtime/waketime are "HH:MM" strings; handles overnight wraparound (e.g. 23:00 -> 07:00).
+  if(!bedtime||!waketime)return null;
+  const [bh,bm]=bedtime.split(':').map(Number),[wh,wm]=waketime.split(':').map(Number);
+  if([bh,bm,wh,wm].some(isNaN))return null;
+  let bed=bh*60+bm,wake=wh*60+wm;
+  if(wake<=bed)wake+=24*60; // crossed midnight
+  return (wake-bed)/60;
+}
+function showFatiguePrompt(){
+  stopTimerAnim();
+  const labels=LANG==='en'?['Very easy','Easy','Okay','Hard','Very hard']:LANG==='ru'?['Очень легко','Легко','Нормально','Сложно','Очень сложно']:['Juda oson','Oson','O\u2018rtacha',"Qiyin","Juda qiyin"];
+  app.innerHTML=`<div class="screen active"><div class="card" style="text-align:center;"><div class="card-inner">
+    <div style="font-size:44px;margin-bottom:10px;">🎚️</div>
+    <h2>${LANG==='en'?'One last quick question':LANG==='ru'?'Ещё один быстрый вопрос':'Yana bitta tezkor savol'}</h2>
+    <p style="margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;">${LANG==='en'?'How challenging did that memory game feel?':LANG==='ru'?'Насколько сложной показалась игра на память?':"Xotira o'yini qanchalik qiyin tuyuldi?"}</p>
+    <div class="opts" style="margin-top:18px;">
+      ${labels.map((l,i)=>`<div class="opt" onclick="finishNback(${i+1})"><div class="opt-ico">${['😌','🙂','😐','😣','🥵'][i]}</div><div class="opt-txt">${l}</div><div class="opt-chk">✓</div></div>`).join('')}
+    </div>
+  </div></div></div>`;
+  window.scrollTo(0,0);
+}
+async function finishNback(fatigue){
   stopTimerAnim();
   const stats=nbStats(S.nback.trials);
   S.nback={...S.nback,...stats,trials:S.nback.trials};
-  S.pid=await assignParticipantId();
   const durSec=Math.round((Date.now()-S.t0)/1000);
   const psqi5=['5a','5b','5c','5d','5e','5f','5g','5h','5i'];
   const psqi5vals=psqi5.map(k=>S.psqi[k]).filter(v=>v!==undefined&&v!==null);
   const straightLine=psqi5vals.length===9&&new Set(psqi5vals).size===1;
+  const tib=timeInBedHours(S.psqi.q1,S.psqi.q3);
+  const durBandMin=[0,5,6,7][S.psqi.q4]??null; // hours implied by the selected duration band
+  const timeInconsistent=(tib!==null&&durBandMin!==null)?(tib<durBandMin-0.75):false; // can't have slept more than time in bed
+  const nT=S.nback.trials.filter(x=>x.isM).length,nNT=S.nback.trials.filter(x=>!x.isM).length;
+  const targetRatio=S.nback.trials.length?Math.round((nT/S.nback.trials.length)*100)/100:null;
   const qc={
     attnPass:!!(S.qc&&S.qc.attnPass),
     attnAnswered:!!(S.qc&&S.qc.attnAnswered),
     fast:durSec<180, // under 3 minutes for a ~15-20 min survey is almost certainly rushed
     anticipatory:stats.anticipatory>=2, // 2+ sub-150ms presses \u2014 near-impossible as genuine reactions
-    straightLine // identical answer on all 9 PSQI disturbance sub-items \u2014 classic satisficing pattern
+    straightLine, // identical answer on all 9 PSQI disturbance sub-items \u2014 classic satisficing pattern
+    timeInconsistent, // reported more sleep than time spent in bed \u2014 logically impossible
+    fatigue:fatigue??null // 1\u20135 self-reported task difficulty/fatigue
   };
+  qc.excludeRecommended=qc.fast||qc.anticipatory||qc.straightLine||qc.timeInconsistent||!qc.attnPass;
+  if(!PREVIEW_MODE){
+    S.pid=await assignParticipantId();
+  }else{
+    S.pid='PREVIEW-'+Math.random().toString(36).slice(2,7);
+  }
   const payload={
     pid:S.pid,date:new Date().toISOString(),lang:LANG,dur:durSec,
+    localHour:new Date().getHours(),
+    appVersion:SURVEY_VERSION,
+    preview:PREVIEW_MODE,
+    meta:getSessionMeta(),
     demo:S.demo,migraine:S.migraine,
     psqi:{global:S.psqi.global,...S.psqi},
-    nback:{acc:stats.acc,hitAcc:stats.hitAcc,dprime:stats.dprime,bias:stats.bias,meanRT:stats.meanRT,medRT:stats.medRT,hits:stats.hits,misses:stats.misses,fa:stats.fa,cr:stats.cr},
+    nback:{acc:stats.acc,hitAcc:stats.hitAcc,dprime:stats.dprime,bias:stats.bias,meanRT:stats.meanRT,medRT:stats.medRT,hits:stats.hits,misses:stats.misses,fa:stats.fa,cr:stats.cr,nTargets:nT,nNonTargets:nNT,targetRatio},
     qc
   };
+  if(PREVIEW_MODE){
+    toast('👁️ '+(LANG==='en'?'Preview mode \u2014 nothing was saved':LANG==='ru'?'Режим предпросмотра \u2014 ничего не сохранено':"Ko'rib chiqish rejimi \u2014 hech narsa saqlanmadi"),'var(--accent2)');
+    clearDraft();
+    S.step=8;render();
+    return;
+  }
   const saved=await saveData(payload);
   if(!saved.shared){
     toast('⚠️ '+(LANG==='en'?'Saved only on this device - start the collector server for shared data':LANG==='ru'?'Сохранено только на этом устройстве':'Faqat shu qurilmada saqlandi'),'var(--yellow)');
@@ -1608,7 +1718,7 @@ function s8(){
     <div class="eyebrow" style="display:inline-flex;margin-bottom:14px;">N-back ${LANG==='en'?'Results':LANG==='ru'?'Результаты':'Natijalari'}</div>
     <div class="ring-wrap">
       <svg width="170" height="170" viewBox="0 0 170 170">
-        <circle cx="85" cy="85" r="68" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10"/>
+        <circle cx="85" cy="85" r="68" fill="none" stroke="var(--border)" stroke-width="10"/>
         <circle cx="85" cy="85" r="68" fill="none" stroke="url(#rg8)" stroke-width="10"
           stroke-linecap="round" stroke-dasharray="${circ.toFixed(1)}"
           id="ring-c" stroke-dashoffset="${circ.toFixed(1)}"/>
@@ -1633,7 +1743,7 @@ function s8(){
           <div class="dl"><span style="background:var(--green)"></span>${LANG==='en'?'Correct':LANG==='ru'?'Верно':"To'g'ri"}</div>
           <div class="dl"><span style="background:var(--yellow)"></span>${LANG==='en'?'Missed':LANG==='ru'?'Пропущено':'O\'tkazildi'}</div>
           <div class="dl"><span style="background:var(--red)"></span>${LANG==='en'?'False alarm':LANG==='ru'?'Ложная':'Noto\'g\'ri'}</div>
-          <div class="dl"><span style="background:rgba(255,255,255,.1)"></span>N/A</div>
+          <div class="dl"><span style="background:var(--border2)"></span>N/A</div>
         </div>
       </div>
     </div>
@@ -1691,7 +1801,11 @@ function s9(){
         ?"You just helped us look at whether poor sleep might explain part of why some teens with migraines have more difficulty with tasks like the memory game you just played \u2014 not just the pain itself. If we're right, that matters: it means better sleep habits could genuinely help, alongside (not instead of) any medical treatment for migraine."
         :LANG==='ru'
         ?'Вы только что помогли нам изучить, может ли плохой сон объяснять часть того, почему у некоторых подростков с мигренью бывает сложнее справляться с такими заданиями, как игра на память, которую вы только что прошли \u2014 а не только сама боль. Если мы правы, это важно: значит, улучшение сна может реально помочь, наряду с лечением мигрени, а не вместо него.'
-        :"Siz hozirgina bizga migreni bor ba'zi o'smirlarning xotira o'yini kabi vazifalarda nega ko'proq qiynalishini \u2014 shunchaki og'riqning o'zi emas \u2014 yomon uyqu qisman tushuntira oladimi yoki yo'qligini bilishga yordam berdingiz. Agar biz haq bo'lsak, bu muhim: yaxshi uyqu odatlari migren davosi o'rniga emas, balki unga qo'shimcha ravishda haqiqatan ham yordam berishi mumkinligini bildiradi."}
+        :"Siz hozir bizga bir muhim narsani tushunishga yordam berdingiz: nega migreni bor ba’zi o‘smirlar xotira yoki diqqat talab qiladigan vazifalarda qiynaladi? Bu faqat og‘riq sababmi yoki yomon uyqu ham bunga ta’sir qiladimi — shuni bilishga harakat qilyapmiz.
+
+Agar bizning fikrimiz to‘g‘ri chiqsa, bu juda muhim. Bu shuni anglatadiki, yaxshi uyqu odatlari migrenni to‘liq davolamasa ham, unga qo‘shimcha ravishda yordam berishi mumkin.
+
+Yana bir muhim narsa: agar bosh og‘rig‘i yoki uyqu muammolari sizda tez-tez bo‘lsa va hayotingizga ta’sir qilayotgan bo‘lsa, bu haqida ota-onangiz yoki shifokorga aytish kerak. Bu so‘rovnoma faqat tadqiqot uchun, tibbiy maslahat emas. Lekin bosh og‘rig‘i va uyqu muammolari ko‘pincha davolanishi mumkin."}
       </p>
       <p style="margin-top:12px;">${LANG==='en'
         ?"One more thing \u2014 if headaches or sleep are actually a real, ongoing problem for you (not just for this survey), it's worth mentioning to a parent or doctor. This survey is research, not medical advice, but frequent headaches or poor sleep are very treatable when someone knows about them."
@@ -1787,7 +1901,7 @@ const ADMIN_LABELS={
   nback_dprime:'D-Prime (d\u2032)',nback_criterion_c:'Criterion (c)',
   nback_mean_rt_ms:'Mean Reaction Time (ms)',nback_median_rt_ms:'Median Reaction Time (ms)',
   nback_hits:'Hits',nback_misses:'Misses',nback_false_alarms:'False Alarms',nback_correct_rejections:'Correct Rejections',
-  qc_attention_check_passed:'Attention Check Passed',qc_fast_completion_flag:'Fast-Completion Flag',qc_anticipatory_response_flag:'Anticipatory-Response Flag',qc_straight_lining_flag:'Straight-Lining Flag'
+  qc_attention_check_passed:'Attention Check Passed',qc_fast_completion_flag:'Fast-Completion Flag',qc_anticipatory_response_flag:'Anticipatory-Response Flag',qc_straight_lining_flag:'Straight-Lining Flag',qc_time_inconsistent_flag:'Time-Inconsistency Flag',qc_exclude_recommended:'Exclude Recommended'
 };
 const ADMIN_PW_HASH='592bf2862b79344c231ffe1597e851f62b0fa57279ab04de0ce200513304e077'; // SHA-256, offline fallback only \u2014 real check happens server-side when the collector is running
 async function sha256Hex(str){
@@ -1827,11 +1941,11 @@ async function renderAdmin(){
       if(res.ok){
         const j=await res.json();
         const rate=j.starts>0?Math.round((j.completions/j.starts)*100):null;
-        funnelHtml=`<p style="margin-top:4px;">${LANG==='en'?'Started':'Boshlangan'}: <strong>${j.starts}</strong> · ${LANG==='en'?'Completed':'Tugallangan'}: <strong>${j.completions}</strong>${rate!==null?` · ${LANG==='en'?'Completion rate':"Tugallash darajasi"}: <strong>${rate}%</strong>`:''}</p>`;
+        funnelHtml=`<p style="margin-top:4px;">${LANG==='en'?'Started':'Boshlangan'}: <strong>${j.starts}</strong> · ${LANG==='en'?'Completed':'Tugallangan'}: <strong>${j.completions}</strong>${rate!==null?` · ${LANG==='en'?'Completion rate':"Tugallash darajasi"}: <strong>${rate}%</strong>`:''}${typeof j.dropouts==='number'?` · ${LANG==='en'?'Tracked dropouts':"Aniqlangan tashlab ketishlar"}: <strong>${j.dropouts}</strong>`:''}</p>`;
       }
     }catch(e){}
   }
-  const flagged=rows.filter(r=>r.qc&&(r.qc.attnPass===false||r.qc.fast||r.qc.anticipatory||r.qc.straightLine)).length;
+  const flagged=rows.filter(r=>r.qc?.excludeRecommended).length;
   const s=`<div class="card"><div class="card-inner">
     <div class="eyebrow" style="margin-bottom:10px;">Researcher Panel</div>
     <h2>📊 Dataset</h2>
@@ -1961,7 +2075,7 @@ function renderScatterSVG(rows){
     <circle cx="${W-90}" cy="14" r="4" fill="var(--accent)"/><text x="${W-82}" y="17" font-size="8.5" fill="var(--muted)" font-family="Inter,sans-serif">${LANG==='en'?'migraine likely':'migren ehtimoli'}</text>
   </svg>`;
 }
-const ADMIN_SUMMARY_KEYS=['participant_id','date','age','sex','language','duration_sec','mig_score','mig_likely','psqi_global','nback_accuracy_pct','nback_dprime','nback_criterion_c','nback_mean_rt_ms','nback_median_rt_ms','qc_attention_check_passed','qc_fast_completion_flag','qc_anticipatory_response_flag','qc_straight_lining_flag'];
+const ADMIN_SUMMARY_KEYS=['participant_id','date','age','sex','language','duration_sec','mig_score','mig_likely','psqi_global','nback_accuracy_pct','nback_dprime','nback_criterion_c','nback_mean_rt_ms','nback_median_rt_ms','qc_exclude_recommended','qc_attention_check_passed','qc_fast_completion_flag','qc_anticipatory_response_flag','qc_straight_lining_flag'];
 function renderAdminTable(){
   const wrap=document.getElementById('admin-tbl-wrap');
   if(!wrap)return;
@@ -1979,6 +2093,7 @@ function renderAdminTable(){
       if(k==='qc_fast_completion_flag')return `<td>${v?'⚡ '+(LANG==='en'?'Fast':LANG==='ru'?'Быстро':'Tez'):'✅'}</td>`;
       if(k==='qc_anticipatory_response_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Anticipatory':LANG==='ru'?'Опережающие':'Erta bosilgan'):'✅'}</td>`;
       if(k==='qc_straight_lining_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Straight-lined':LANG==='ru'?'Одинаковые':'Bir xil javob'):'✅'}</td>`;
+      if(k==='qc_exclude_recommended')return `<td>${v?'🚫 '+(LANG==='en'?'Review':LANG==='ru'?'Проверить':'Tekshirish'):'✅ '+(LANG==='en'?'OK':'OK')}</td>`;
       return `<td>${esc(v)}</td>`;
     }).join('');
     const delTitle=LANG==='en'?'Delete participant':'Ishtirokchini o\u2018chirish';
@@ -2073,7 +2188,10 @@ async function importJSON(file){
 function flattenRow(r){
   return{
     participant_id:r.pid,date:r.date,language:r.lang,duration_sec:r.dur,
+    app_version:r.appVersion,local_hour:r.localHour,preview_row:r.preview,
+    device_type:r.meta?.device,browser:r.meta?.browser,screen_w:r.meta?.screenW,screen_h:r.meta?.screenH,viewport_w:r.meta?.viewportW,timezone:r.meta?.tz,
     age:r.demo?.age,sex:r.demo?.sex,grade:r.demo?.grade,headache_today:r.demo?.ha,
+    ctx_sleep_last_night:r.demo?.ctx_sleep,ctx_caffeine_today:r.demo?.ctx_caffeine,ctx_regular_medication:r.demo?.ctx_meds,
     mig_q1:r.migraine?.q0,mig_q2:r.migraine?.q1,mig_q3:r.migraine?.q2,
     mig_score:r.migraine?.score,mig_likely:r.migraine?.likely,mig_freq:r.migraine?.freq,
     psqi_q1_bedtime:r.psqi?.q1,psqi_q2_latency:r.psqi?.q2,psqi_q3_waketime:r.psqi?.q3,psqi_q4_duration:r.psqi?.q4,
@@ -2091,10 +2209,16 @@ function flattenRow(r){
     nback_misses:r.nback?.misses,
     nback_false_alarms:r.nback?.fa,
     nback_correct_rejections:r.nback?.cr,
+    nback_n_targets:r.nback?.nTargets,
+    nback_n_nontargets:r.nback?.nNonTargets,
+    nback_target_ratio:r.nback?.targetRatio,
     qc_attention_check_passed:r.qc?.attnPass,
     qc_fast_completion_flag:r.qc?.fast,
     qc_anticipatory_response_flag:r.qc?.anticipatory,
-    qc_straight_lining_flag:r.qc?.straightLine
+    qc_straight_lining_flag:r.qc?.straightLine,
+    qc_time_inconsistent_flag:r.qc?.timeInconsistent,
+    qc_fatigue_rating:r.qc?.fatigue,
+    qc_exclude_recommended:r.qc?.excludeRecommended
   };
 }
 const CODEBOOK=[
@@ -2136,6 +2260,23 @@ const CODEBOOK=[
   {Variable:'qc_fast_completion_flag',Description:'Data-quality flag: TRUE if total duration was under 3 minutes, which is implausibly fast for this ~15\u201320 minute survey and likely indicates a rushed/careless response',Range:'TRUE / FALSE'},
   {Variable:'qc_anticipatory_response_flag',Description:'Data-quality flag: TRUE if 2+ button presses on the n-back task were under 150ms, which is faster than a genuine human reaction to a stimulus \u2014 suggests button-mashing rather than real responses',Range:'TRUE / FALSE'},
   {Variable:'qc_straight_lining_flag',Description:'Data-quality flag: TRUE if the participant gave the exact same answer to all 9 PSQI sleep-disturbance sub-items \u2014 a classic satisficing/inattentive-responding pattern',Range:'TRUE / FALSE'},
+  {Variable:'qc_time_inconsistent_flag',Description:'Data-quality flag: TRUE if reported sleep duration (psqi_q4_duration band) is logically impossible given time actually spent in bed (psqi_q3_waketime minus psqi_q1_bedtime) \u2014 e.g. claiming 7+ hours of sleep from only 90 minutes in bed',Range:'TRUE / FALSE'},
+  {Variable:'qc_fatigue_rating',Description:'Self-reported task difficulty/fatigue immediately after the n-back task, 1=very easy to 5=very hard. Useful for distinguishing low performance due to genuine difficulty vs. disengagement',Range:'1\u20135 or blank'},
+  {Variable:'qc_exclude_recommended',Description:'Composite flag: TRUE if ANY quality-control check failed (fast completion, anticipatory responses, straight-lining, time inconsistency, or failed attention check). Not an automatic exclusion \u2014 a flag for manual review before finalizing your analysis sample',Range:'TRUE / FALSE'},
+  {Variable:'app_version',Description:'Version of the survey app the response was collected on \u2014 check this if you change questions or scoring mid-collection, so you can separate data collected under different versions',Range:'semver text'},
+  {Variable:'local_hour',Description:'Participant\u2019s local hour of day (0\u201323) when they completed the survey \u2014 useful for checking circadian/time-of-day effects on sleep and working-memory measures',Range:'0\u201323'},
+  {Variable:'preview_row',Description:'TRUE if this row was collected in researcher preview mode (?preview=1) and should be excluded from any real analysis \u2014 in practice preview rows are not saved to the shared dataset at all, this column exists only as a safety net',Range:'TRUE / FALSE'},
+  {Variable:'device_type',Description:'Device category detected from the browser at submission time',Range:'mobile / tablet / desktop'},
+  {Variable:'browser',Description:'Browser detected at submission time',Range:'chrome / safari / firefox / edge / other'},
+  {Variable:'screen_w / screen_h',Description:'Participant\u2019s physical screen resolution in pixels \u2014 a very small screen may affect n-back task legibility/performance',Range:'pixels'},
+  {Variable:'viewport_w',Description:'Browser viewport width in pixels at submission time (may differ from screen_w on desktop windowed browsers)',Range:'pixels'},
+  {Variable:'timezone',Description:'Participant\u2019s browser-reported IANA timezone (e.g. Asia/Tashkent)',Range:'text'},
+  {Variable:'ctx_sleep_last_night',Description:'Optional self-report: hours slept the night before taking the survey \u2014 a same-day sleep confound distinct from the PSQI\u2019s past-month average',Range:'lt5 / 5to7 / gt7 / blank (optional)'},
+  {Variable:'ctx_caffeine_today',Description:'Optional self-report: any caffeine (tea/coffee/energy drink) consumed the day of testing \u2014 a known confound for reaction-time and working-memory tasks',Range:'ha / yoq / blank (optional)'},
+  {Variable:'ctx_regular_medication',Description:'Optional self-report: currently taking any regular medication (unspecified which) \u2014 flagged only as yes/no for privacy, not itemized',Range:'ha / yoq / blank (optional)'},
+  {Variable:'nback_n_targets / nback_n_nontargets',Description:'Actual count of target (2-back match) vs. non-target trials this participant\u2019s randomly generated sequence contained. The generator targets ~34% match rate but check these columns \u2014 an unbalanced sequence (e.g. very few targets) makes that participant\u2019s d\u2032 less reliable',Range:'counts, sum to 22'},
+  {Variable:'nback_target_ratio',Description:'nback_n_targets / total trials for this participant, as a proportion \u2014 quick way to spot sequences that came out badly unbalanced by chance',Range:'0\u20131, expect \u2248 0.30\u20130.40'},
+  {Variable:'MISSING VALUES \u2014 read this',Description:'Unanswered optional items (ctx_* fields, qc_fatigue_rating) are blank/null in the export, not zero \u2014 treat as genuinely missing (NA), not as a meaningful "0" response. Required survey items cannot be left blank by design (the app validates before allowing continue), so blanks there would indicate a data export issue, not a real participant skip.',Range:'\u2014'},
 ];
 function dlXLSX(rows){
   if(!rows.length){toast('No data','var(--red)');return;}
@@ -2255,7 +2396,14 @@ let ALREADY_DONE=false;
 try{ALREADY_DONE=localStorage.getItem('tadqiqot_done')==='1';}catch(e){}
 let RESUME_DRAFT=null;
 try{const raw=localStorage.getItem('tadqiqot_draft');if(raw)RESUME_DRAFT=JSON.parse(raw);}catch(e){}
-if(ALREADY_DONE){sBlocked('repeat');}
+if(PREVIEW_MODE){
+  const b=document.createElement('div');
+  b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:999;background:var(--accent2);color:#1a0a10;text-align:center;font-family:var(--font-display);font-weight:700;font-size:12px;padding:5px;';
+  b.textContent='👁️ '+(LANG==='en'?'PREVIEW MODE \u2014 nothing you do here is saved':"KO'RIB CHIQISH REJIMI \u2014 hech narsa saqlanmaydi");
+  document.body.prepend(b);
+  render();
+}
+else if(ALREADY_DONE){sBlocked('repeat');}
 else if(RESUME_DRAFT&&RESUME_DRAFT.step>0){showResumePrompt(RESUME_DRAFT);}
 else{render();}
 </script>
