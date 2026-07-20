@@ -462,7 +462,7 @@ uz:{title:'Migren, Uyqu va Xotira',sub:"O'smirlar o'rtasida ilmiy neyrologiya ta
   disc:"Bu natijalar faqat ilmiy maqsadda. Tibbiy xulosa emas.",
   ty_t:"Katta Rahmat!",
   ty_s:"Ushbu tadqiqotda ishtirok etib, siz juda muhim hissa qo'shdingiz. Ma'lumotlaringiz migren va yosh miyaga ta'sirini o'rganishda yordam beradi.",
-  ty_q:'"Bilim — kelajakka eng ulug\' sarmoya."',
+  ty_q:'"Hayotda hech narsadan qo\'rqmaslik kerak, faqat uni tushunish kerak." \u2014 Mari Kyuri',
   home:'← Bosh sahifaga',fill:'Barcha savollarga javob bering',sel:'Javob tanlang'},
 ru:{title:'Мигрень, Сон и Память',sub:'Научное неврологическое исследование среди подростков.',anon:'Анонимно · Научные цели',
   about:'Этот опрос изучает связь между мигренью, качеством сна и рабочей памятью. Все ответы конфиденциальны.',
@@ -508,7 +508,7 @@ ru:{title:'Мигрень, Сон и Память',sub:'Научное невр�
   disc:'Результаты только для науки. Не медицинский диагноз.',
   ty_t:'Большое Спасибо!',
   ty_s:'Участвуя в исследовании, вы внесли важный вклад. Данные помогут изучить влияние мигрени на молодой мозг.',
-  ty_q:'"Знание — величайшая инвестиция в будущее."',
+  ty_q:'«Ничего в жизни не следует бояться, это следует понять.» \u2014 Мария Кюри',
   home:'← На главную',fill:'Ответьте на все вопросы',sel:'Выберите ответ'},
 en:{title:'Migraine, Sleep & Memory',sub:'A scientific neurology study among adolescents.',anon:'Anonymous · Scientific purpose',
   about:'This survey examines the link between migraine, sleep quality and working memory. All responses are confidential.',
@@ -554,7 +554,7 @@ en:{title:'Migraine, Sleep & Memory',sub:'A scientific neurology study among ado
   disc:'Results are for scientific research only. Not a medical diagnosis.',
   ty_t:'Thank You!',
   ty_s:'By participating you have made an important contribution. Your data will help us study the impact of migraine on the young brain.',
-  ty_q:'"Knowledge is the greatest investment in the future."',
+  ty_q:'"Nothing in life is to be feared, it is only to be understood." \u2014 Marie Curie',
   home:'← Return to home',fill:'Please answer all questions',sel:'Select an answer'}
 };
 let LANG='uz';
@@ -1311,14 +1311,18 @@ function s6(){
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;">
       ${[['🎓',LANG==='en'?'First':LANG==='ru'?'Сначала':'Avval',LANG==='en'?'8 · practice':LANG==='ru'?'8 · практика':'8 · mashq'],['🔤',LANG==='en'?'Then':LANG==='ru'?'Затем':'Keyin',LANG==='en'?'22 · real':LANG==='ru'?'22 · настоящий':'22 · asosiy'],['⏱️',LANG==='en'?'Duration':LANG==='ru'?'Время':'Vaqt','~3min']].map(([e,l,v])=>`<div style="background:var(--card-hi);border:1px solid var(--border2);box-shadow:0 3px 10px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.1);border-radius:13px;padding:13px 8px;text-align:center;"><div style="font-size:22px;margin-bottom:5px;">${e}</div><div style="font-size:9.5px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">${l}</div><div style="font-size:14px;font-weight:700;margin-top:3px;">${v}</div></div>`).join('')}
     </div>
-    <div class="qc-block" style="margin-top:16px;">
-      <div class="qs first" style="margin-top:0;"><span class="qs-icon">☕</span>${LANG==='en'?'Optional \u2014 helps us interpret your results:':'Ixtiyoriy \u2014 natijalaringizni to\u2018g\u2018ri tushunishga yordam beradi:'}</div>
-      <div class="qs" style="margin-top:10px;font-size:13px;">${LANG==='en'?'Sleep last night?':LANG==='ru'?'Сон прошлой ночью?':"Kecha necha soat uxladingiz?"}</div>
-      ${optGroup('ctx_sleep',[{v:'lt5',l:LANG==='en'?'< 5 hrs':'< 5 soat',e:'😵'},{v:'5to7',l:LANG==='en'?'5\u20137 hrs':'5\u20137 soat',e:'😪'},{v:'gt7',l:LANG==='en'?'7+ hrs':'7+ soat',e:'😊'}])}
-      <div class="qs" style="font-size:13px;">${LANG==='en'?'Any caffeine today (tea, coffee, energy drinks)?':LANG==='ru'?'Кофеин сегодня (чай, кофе, энергетики)?':"Bugun kofein iste'mol qildingizmi (choy, qahva, energetik)?"}</div>
-      ${pillGroup('ctx_caffeine','☕','🚫',t('yes'),t('no'))}
-      <div class="qs" style="font-size:13px;">${LANG==='en'?'Taking any regular medication?':LANG==='ru'?'Принимаете лекарства регулярно?':"Doimiy dori-darmon ichasizmi?"}</div>
-      ${pillGroup('ctx_meds','💊','🚫',t('yes'),t('no'))}
+    <div class="qs" style="margin-top:16px;"><span class="qs-icon">☕</span>${LANG==='en'?'Optional \u2014 helps us interpret your results:':'Ixtiyoriy \u2014 natijalaringizni to\u2018g\u2018ri tushunishga yordam beradi:'}</div>
+    <div class="qs-block qc-block" style="margin-top:10px;">
+      <div class="qs" style="margin-top:0;font-size:13px;">${LANG==='en'?'Sleep last night?':LANG==='ru'?'Сон прошлой ночью?':"Kecha necha soat uxladingiz?"}</div>
+      ${optGroup('ctx_sleep',[{v:'lt5',l:LANG==='en'?'< 5 hrs':'< 5 soat',e:'😵'},{v:'5to7',l:LANG==='en'?'5\u20137 hrs':'5\u20137 soat',e:'😪'},{v:'gt7',l:LANG==='en'?'7+ hrs':'7+ soat',e:'😊'}],true)}
+    </div>
+    <div class="qs-block qc-block" style="margin-top:22px;">
+      <div class="qs" style="margin-top:0;font-size:13px;">${LANG==='en'?'Any caffeine today (tea, coffee, energy drinks)?':LANG==='ru'?'Кофеин сегодня (чай, кофе, энергетики)?':"Bugun kofein iste'mol qildingizmi (choy, qahva, energetik)?"}</div>
+      ${pillGroup('ctx_caffeine','☕','🚫',t('yes'),t('no'),true)}
+    </div>
+    <div class="qs-block qc-block" style="margin-top:22px;">
+      <div class="qs" style="margin-top:0;font-size:13px;">${LANG==='en'?'Taking any regular medication?':LANG==='ru'?'Принимаете лекарства регулярно?':"Doimiy dori-darmon ichasizmi?"}</div>
+      ${pillGroup('ctx_meds','💊','🚫',t('yes'),t('no'),true)}
     </div>
     <label class="consent-box" id="nb-assent-box" style="margin-top:16px;">
       <input type="checkbox" id="nb-assent-check" class="consent-cb">
@@ -1634,20 +1638,38 @@ function timeInBedHours(bedtime,waketime){
   if(wake<=bed)wake+=24*60; // crossed midnight
   return (wake-bed)/60;
 }
+let SUBMITTING_NBACK=false;
 function showFatiguePrompt(){
   stopTimerAnim();
+  SUBMITTING_NBACK=false;
   const labels=LANG==='en'?['Very easy','Easy','Okay','Hard','Very hard']:LANG==='ru'?['Очень легко','Легко','Нормально','Сложно','Очень сложно']:['Juda oson','Oson','O\u2018rtacha',"Qiyin","Juda qiyin"];
   app.innerHTML=`<div class="screen active"><div class="card" style="text-align:center;"><div class="card-inner">
-    <div style="font-size:44px;margin-bottom:10px;">🎚️</div>
+    <div style="font-size:44px;margin-bottom:10px;" id="fatigue-icon">🎚️</div>
     <h2>${LANG==='en'?'One last quick question':LANG==='ru'?'Ещё один быстрый вопрос':'Yana bitta tezkor savol'}</h2>
-    <p style="margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;">${LANG==='en'?'How challenging did that memory game feel?':LANG==='ru'?'Насколько сложной показалась игра на память?':"Xotira o'yini qanchalik qiyin tuyuldi?"}</p>
-    <div class="opts" style="margin-top:18px;">
-      ${labels.map((l,i)=>`<div class="opt" onclick="finishNback(${i+1})"><div class="opt-ico">${['😌','🙂','😐','😣','🥵'][i]}</div><div class="opt-txt">${l}</div><div class="opt-chk">✓</div></div>`).join('')}
+    <p style="margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;" id="fatigue-sub">${LANG==='en'?'How challenging did that memory game feel?':LANG==='ru'?'Насколько сложной показалась игра на память?':"Xotira o'yini qanchalik qiyin tuyuldi?"}</p>
+    <div class="opts" style="margin-top:18px;" id="fatigue-opts">
+      ${labels.map((l,i)=>`<div class="opt" id="fatigue-opt-${i+1}" onclick="submitFatigue(${i+1})"><div class="opt-ico">${['😌','🙂','😐','😣','🥵'][i]}</div><div class="opt-txt">${l}</div><div class="opt-chk">✓</div></div>`).join('')}
     </div>
   </div></div></div>`;
   window.scrollTo(0,0);
 }
+function submitFatigue(rating){
+  if(SUBMITTING_NBACK)return; // ignore every click after the first \u2014 no double/triple/30x submits
+  SUBMITTING_NBACK=true;
+  // Instant visual feedback so it never looks like the tap did nothing, even while the save is still in flight.
+  const opts=document.getElementById('fatigue-opts');
+  if(opts)opts.style.pointerEvents='none';
+  const chosen=document.getElementById('fatigue-opt-'+rating);
+  if(chosen)chosen.classList.add('selected');
+  document.querySelectorAll('#fatigue-opts .opt').forEach(el=>{if(el!==chosen)el.style.opacity='.35';});
+  const icon=document.getElementById('fatigue-icon');
+  if(icon)icon.textContent='⏳';
+  const sub=document.getElementById('fatigue-sub');
+  if(sub)sub.textContent=LANG==='en'?'Saving your results\u2026':LANG==='ru'?'Сохраняем результаты\u2026':'Natijalar saqlanmoqda\u2026';
+  finishNback(rating);
+}
 async function finishNback(fatigue){
+  SUBMITTING_NBACK=true; // idempotent safety net in case this is ever called directly
   stopTimerAnim();
   const stats=nbStats(S.nback.trials);
   S.nback={...S.nback,...stats,trials:S.nback.trials};
@@ -1795,12 +1817,14 @@ function s9(){
       <span class="pid-copy">📋</span>
     </div>
     <div class="ty-quote">${t('ty_q')}</div>
-    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap;">
-      <div style="padding:9px 17px;background:var(--card-hi);border:2px solid var(--border2);border-radius:var(--rs);font-size:13px;">
-        📧 <a href="mailto:odilovbj@gmail.com" style="color:var(--accent2);text-decoration:none;font-weight:600;">odilovbj@gmail.com</a>
+    <div class="contact-bar" style="justify-content:center;margin-top:14px;">
+      <div class="contact-chip" style="flex:0 1 auto;">
+        <span class="c-ico mail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5l8.5 7 8.5-7"/></svg></span>
+        <div><div style="font-size:10px;color:var(--muted2);font-weight:700;">Email</div><a href="mailto:odilovbj@gmail.com" style="color:var(--accent2);text-decoration:none;font-weight:600;">odilovbj@gmail.com</a></div>
       </div>
-      <div style="padding:9px 17px;background:var(--card-hi);border:2px solid var(--border2);border-radius:var(--rs);font-size:13px;">
-        ✈️ <a href="https://t.me/bkzd_odilov" target="_blank" style="color:var(--accent2);text-decoration:none;font-weight:600;">@bkzd_odilov</a>
+      <div class="contact-chip" style="flex:0 1 auto;">
+        <span class="c-ico tg"><svg viewBox="0 0 240 240" fill="currentColor"><path d="M180.5 51.8 27.4 111.2c-11.1 4.4-11 10.6-2 13.4l39.1 12.2 90.8-57.3c4.3-2.6 8.2-1.2 5 1.7l-73.6 66.5h-.1l.1.1-2.8 39.2c4.1 0 5.9-1.9 8.1-4.1l19.6-19 40.7 30.1c7.5 4.1 12.9 2 14.8-6.9l26.9-126.9c2.8-11-.9-15.9-13.5-11.1Z"/></svg></span>
+        <div><div style="font-size:10px;color:var(--muted2);font-weight:700;">Telegram</div><a href="https://t.me/bkzd_odilov" target="_blank" style="color:var(--accent2);text-decoration:none;font-weight:600;">@bkzd_odilov</a></div>
       </div>
     </div>
   </div></div>
@@ -1811,7 +1835,7 @@ function s9(){
         ?"You just helped us look at whether poor sleep might explain part of why some teens with migraines have more difficulty with tasks like the memory game you just played \u2014 not just the pain itself. If we're right, that matters: it means better sleep habits could genuinely help, alongside (not instead of) any medical treatment for migraine."
         :LANG==='ru'
         ?'Вы только что помогли нам изучить, может ли плохой сон объяснять часть того, почему у некоторых подростков с мигренью бывает сложнее справляться с такими заданиями, как игра на память, которую вы только что прошли \u2014 а не только сама боль. Если мы правы, это важно: значит, улучшение сна может реально помочь, наряду с лечением мигрени, а не вместо него.'
-        :"Siz hozir bizga bir muhim narsani tushunishga yordam berdingiz: nega migreni bor ba’zi o‘smirlar xotira yoki diqqat talab qiladigan vazifalarda qiynaladi? Bu faqat og‘riq sababmi yoki yomon uyqu ham bunga ta’sir qiladimi — shuni bilishga harakat qilyapmiz. Agar bizning fikrimiz to‘g‘ri chiqsa, bu juda muhim. Bu shuni anglatadiki, yaxshi uyqu odatlari migrenni to‘liq davolamasa ham, unga qo‘shimcha ravishda yordam berishi mumkin. Yana bir muhim narsa: agar bosh og‘rig‘i yoki uyqu muammolari sizda tez-tez bo‘lsa va hayotingizga ta’sir qilayotgan bo‘lsa, bu haqida ota-onangiz yoki shifokorga aytish kerak. Bu so‘rovnoma faqat tadqiqot uchun, tibbiy maslahat emas. Lekin bosh og‘rig‘i va uyqu muammolari ko‘pincha davolanishi mumkin."}
+        :"Siz hozir bizga bir muhim narsani tushunishga yordam berdingiz: nega migreni bor ba’zi o‘smirlar xotira yoki diqqat talab qiladigan vazifalarda qiynaladi? Bu faqat og‘riq sababmi yoki yomon uyqu ham bunga ta’sir qiladimi — shuni bilishga harakat qilyapmiz.<br><br>Agar bizning fikrimiz to‘g‘ri chiqsa, bu juda muhim. Bu shuni anglatadiki, yaxshi uyqu odatlari migrenni to‘liq davolamasa ham, unga qo‘shimcha ravishda yordam berishi mumkin.<br><br>Yana bir muhim narsa: agar bosh og‘rig‘i yoki uyqu muammolari sizda tez-tez bo‘lsa va hayotingizga ta’sir qilayotgan bo‘lsa, bu haqida ota-onangiz yoki shifokorga aytish kerak. Bu so‘rovnoma faqat tadqiqot uchun, tibbiy maslahat emas. Lekin bosh og‘rig‘i va uyqu muammolari ko‘pincha davolanishi mumkin."}
       </p>
       <p style="margin-top:12px;">${LANG==='en'
         ?"One more thing \u2014 if headaches or sleep are actually a real, ongoing problem for you (not just for this survey), it's worth mentioning to a parent or doctor. This survey is research, not medical advice, but frequent headaches or poor sleep are very treatable when someone knows about them."
@@ -1952,6 +1976,7 @@ async function renderAdmin(){
     }catch(e){}
   }
   const flagged=rows.filter(r=>r.qc?.excludeRecommended).length;
+  const sampleTarget=await getSampleTarget();
   const s=`<div class="card"><div class="card-inner">
     <div class="eyebrow" style="margin-bottom:10px;">Researcher Panel</div>
     <h2>📊 Dataset</h2>
@@ -1979,7 +2004,7 @@ async function renderAdmin(){
   </div></div>
   <div class="card"><div class="card-inner">
     <div class="eyebrow" style="margin-bottom:10px;">${LANG==='en'?'Sample size target':LANG==='ru'?'Целевой размер выборки':'Namuna hajmi maqsadi'}</div>
-    ${renderSampleTargetHtml(rows.length)}
+    ${renderSampleTargetHtml(rows.length,sampleTarget)}
   </div></div>
   ${rows.length>=5?`<div class="card"><div class="card-inner">
     <div class="eyebrow" style="margin-bottom:10px;">${LANG==='en'?'Ceiling / floor check':LANG==='ru'?'Проверка потолка/пола':'Chegara effekti tekshiruvi'}</div>
@@ -2036,20 +2061,37 @@ function renderCeilingFloorHtml(rows){
     ${warn?`<p style="margin-top:8px;color:var(--yellow);font-weight:600;">⚠️ ${LANG==='en'?"More than 15% of participants are at a ceiling or floor \u2014 the task may not be discriminating ability well in this sample. Worth keeping an eye on as data comes in.":"Ishtirokchilarning 15% dan ko'pi chegara qiymatlarda \u2014 test farqlarni yaxshi ajratmayotgan bo'lishi mumkin."}</p>`
     :`<p class="muted2" style="margin-top:8px;">${LANG==='en'?'Looks healthy \u2014 no major ceiling/floor concentration yet.':"Hozircha muammo yo'q ko'rinadi."}</p>`}`;
 }
-function getSampleTarget(){
+async function getSampleTarget(){
+  try{
+    const res=await fetch(apiUrl('/api/target'),{cache:'no-store'});
+    if(res.ok){
+      const j=await res.json();
+      if(j&&j.target>0){
+        try{localStorage.setItem('tadqiqot_target',String(j.target));}catch(e){}
+        return j.target;
+      }
+    }
+  }catch(e){}
   try{const v=Number(localStorage.getItem('tadqiqot_target'));return v>0?v:60;}catch(e){return 60;}
 }
-function setSampleTarget(){
-  const cur=getSampleTarget();
+async function setSampleTarget(){
+  const cur=await getSampleTarget();
   const v=prompt((LANG==='en'?'Target number of participants (e.g. from a power analysis):':LANG==='ru'?'Целевое число участников (напр., из анализа мощности):':"Ishtirokchilar maqsadli soni (masalan, power analysis asosida):"),cur);
   if(v===null)return;
   const n=parseInt(v,10);
   if(!n||n<1){toast('⚠️ '+(LANG==='en'?'Enter a valid number':'Noto\u2018g\u2018ri son'),'var(--yellow)');return;}
+  let savedToServer=false;
+  try{
+    const res=await fetch(apiUrl('/api/target'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target:n})});
+    savedToServer=res.ok;
+  }catch(e){}
+  if(!savedToServer){
+    toast('⚠️ '+(LANG==='en'?'Could not reach the server \u2014 saved on this device only':LANG==='ru'?'Сервер недоступен \u2014 сохранено только на этом устройстве':'Serverga ulanmadi \u2014 faqat shu qurilmada saqlandi'),'var(--yellow)');
+  }
   try{localStorage.setItem('tadqiqot_target',String(n));}catch(e){}
   renderAdmin();
 }
-function renderSampleTargetHtml(count){
-  const target=getSampleTarget();
+function renderSampleTargetHtml(count,target){
   const pct=Math.min(100,Math.round((count/target)*100));
   return `<p style="margin-bottom:10px;">${count} / ${target} (${pct}%)${pct>=100?' ✅':''}</p>
     <div style="height:10px;background:var(--card-hi);border:2px solid var(--border2);border-radius:6px;overflow:hidden;margin-bottom:12px;">
