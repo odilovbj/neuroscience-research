@@ -10,6 +10,7 @@ const DATA_FILE = path.join(ROOT, "survey-responses.json");
 const COUNTER_FILE = path.join(ROOT, "participant-counter.json");
 const STARTS_FILE = path.join(ROOT, "survey-starts.json");
 const DROPOUTS_FILE = path.join(ROOT, "survey-dropouts.json");
+const TARGET_FILE = path.join(ROOT, "sample-target.json");
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "qwerty#3825";
 const BACKUP_DIR = path.join(ROOT, "backups");
 const MAX_BACKUPS = 25;
@@ -112,6 +113,7 @@ async function restoreAllFromGitHub() {
   await restoreFromGitHubIfMissing(COUNTER_FILE, "participant-counter.json");
   await restoreFromGitHubIfMissing(STARTS_FILE, "survey-starts.json");
   await restoreFromGitHubIfMissing(DROPOUTS_FILE, "survey-dropouts.json");
+  await restoreFromGitHubIfMissing(TARGET_FILE, "sample-target.json");
 }
 
 const apiHeaders = {
@@ -272,6 +274,26 @@ function appendDropout(entry) {
   return dropouts.length;
 }
 
+function readTarget() {
+  try {
+    if (!fs.existsSync(TARGET_FILE)) return 60;
+    const parsed = JSON.parse(fs.readFileSync(TARGET_FILE, "utf8"));
+    return Number(parsed.target) > 0 ? Number(parsed.target) : 60;
+  } catch (err) {
+    return 60;
+  }
+}
+
+function writeTarget(n) {
+  const content = JSON.stringify({ target: n }, null, 2);
+  try {
+    fs.writeFileSync(TARGET_FILE, content);
+  } catch (err) {
+    console.error("Could not save sample target:", err.message);
+  }
+  githubPutFile("sample-target.json", content).catch(() => {});
+}
+
 function networkUrls() {
   const urls = [];
   for (const entries of Object.values(os.networkInterfaces())) {
@@ -332,6 +354,22 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, JSON.stringify({ starts, completions, dropouts }), { "Content-Type": "application/json; charset=utf-8" });
   }
 
+  if (url.pathname === "/api/target" && req.method === "GET") {
+    return send(res, 200, JSON.stringify({ target: readTarget() }), { "Content-Type": "application/json; charset=utf-8" });
+  }
+
+  if (url.pathname === "/api/target" && req.method === "POST") {
+    try {
+      const body = JSON.parse(await readRequestBody(req));
+      const n = Number(body.target);
+      if (!n || n < 1) return send(res, 400, JSON.stringify({ ok: false, error: "invalid target" }), { "Content-Type": "application/json; charset=utf-8" });
+      writeTarget(n);
+      return send(res, 200, JSON.stringify({ ok: true, target: n }), { "Content-Type": "application/json; charset=utf-8" });
+    } catch (err) {
+      return send(res, 400, JSON.stringify({ ok: false, error: err.message }), { "Content-Type": "application/json; charset=utf-8" });
+    }
+  }
+
   if (url.pathname.startsWith("/api/responses/") && req.method === "DELETE") {
     const pid = decodeURIComponent(url.pathname.slice("/api/responses/".length));
     if (!pid) {
@@ -374,7 +412,7 @@ const server = http.createServer(async (req, res) => {
   await restoreAllFromGitHub();
   server.listen(PORT, "0.0.0.0", () => {
     console.log("Survey collector running");
-    console.log(`Local:   http://localhost:${8787}`);
+    console.log(`Local:   http://localhost:${PORT}`);
     for (const url of networkUrls()) console.log(`Network: ${url}`);
     console.log("Responses will be saved to survey-responses.json" + (GH_ENABLED ? " and synced to GitHub" : " (LOCAL ONLY \u2014 will not survive a restart on Render's free tier)"));
   });
