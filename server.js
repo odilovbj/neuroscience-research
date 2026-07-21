@@ -153,23 +153,13 @@ async function restoreAllFromGitHub() {
     console.error("Sync survey-responses.json failed:", err.message);
   }
 
-  // 2. Participant counter: take max(local, remote)
+  // 2. Participant counter: derive strictly from completed response data
   try {
-    const remoteStr = await githubGetFile("participant-counter.json");
-    let remoteNext = 1;
-    if (remoteStr !== null) {
-      try { remoteNext = Number(JSON.parse(remoteStr).next) || 1; } catch (e) {}
-    }
-    let localNext = 1;
-    if (fs.existsSync(COUNTER_FILE)) {
-      try { localNext = Number(JSON.parse(fs.readFileSync(COUNTER_FILE, "utf8")).next) || 1; } catch (e) {}
-    }
-    const highestNext = Math.max(localNext, remoteNext, readRows().length + 1);
-    const cContent = JSON.stringify({ next: highestNext }, null, 2);
+    await githubGetFile("participant-counter.json");
+    const nextNum = parseInt(getNextParticipantId().replace(/\D/g, ""), 10) || (readRows().length + 1);
+    const cContent = JSON.stringify({ next: nextNum }, null, 2);
     fs.writeFileSync(COUNTER_FILE, cContent);
-    if (highestNext > remoteNext) {
-      await githubPutFile("participant-counter.json", cContent);
-    }
+    githubPutFile("participant-counter.json", cContent).catch(() => {});
   } catch (err) {
     console.error("Sync participant-counter.json failed:", err.message);
   }
@@ -299,16 +289,8 @@ function getNextParticipantId() {
       if (num > maxNum) maxNum = num;
     }
   }
-  let counterNext = maxNum + 1;
-  try {
-    if (fs.existsSync(COUNTER_FILE)) {
-      const c = JSON.parse(fs.readFileSync(COUNTER_FILE, "utf8"));
-      if (Number(c.next) > counterNext) counterNext = Number(c.next);
-    }
-  } catch (e) {}
-
-  const finalNext = Math.max(maxNum + 1, counterNext, rows.length + 1);
-  return "participant" + finalNext;
+  const nextNum = Math.max(maxNum + 1, rows.length + 1);
+  return "participant" + nextNum;
 }
 
 function updateCounterAfterSave(pid) {
