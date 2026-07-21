@@ -1,8 +1,20 @@
+// ============================================================================
+// Migraine, Sleep & Memory Survey — Collector Server
+// ============================================================================
+// Serves full.html and collects survey responses to a local JSON file.
+// On Render's free tier (and any host without a persistent disk), local files
+// are wiped on every restart/redeploy/spin-down — so every write here is also
+// pushed to a GitHub repo, and pulled back down on boot. See the GITHUB CONFIG
+// section below for the three env vars that turn this on.
+// ============================================================================
+
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
+const { URL } = require("url");
 
+// ── CORE CONFIG ─────────────────────────────────────────────────────────────
 const PORT = Number(process.env.PORT || 8787);
 const ROOT = __dirname;
 const HTML_FILE = path.join(ROOT, "full.html");
@@ -11,18 +23,15 @@ const COUNTER_FILE = path.join(ROOT, "participant-counter.json");
 const STARTS_FILE = path.join(ROOT, "survey-starts.json");
 const DROPOUTS_FILE = path.join(ROOT, "survey-dropouts.json");
 const TARGET_FILE = path.join(ROOT, "sample-target.json");
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "qwerty#3825";
 const BACKUP_DIR = path.join(ROOT, "backups");
 const MAX_BACKUPS = 25;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "qwerty#3825";
 
-// ── GitHub-backed persistence ──────────────────────────────────────────────
-// Render's free tier (and any plan without an attached Persistent Disk) wipes
-// the local filesystem on every restart, redeploy, or spin-down. To survive
-// that, every write to a tracked JSON file is also pushed to a GitHub repo,
-// and on boot we try to restore from GitHub before falling back to empty.
-// Set these three env vars in Render's dashboard to enable it:
-//   GITHUB_TOKEN  - a personal access token with 'repo' (or fine-grained
-//                   Contents read/write) scope on the target repo
+// ── GITHUB-BACKED PERSISTENCE ────────────────────────────────────────────────
+// Set these three in Render's Environment tab to enable it:
+//   GITHUB_TOKEN  - classic PAT with 'repo' scope (simplest, most reliable),
+//                   or a fine-grained token with Contents: Read and write
+//                   on the target repo specifically
 //   GITHUB_REPO   - "yourusername/your-repo-name"
 //   GITHUB_BRANCH - optional, defaults to "main"
 const GH_TOKEN = process.env.GITHUB_TOKEN || "";
@@ -30,6 +39,7 @@ const GH_REPO = process.env.GITHUB_REPO || "";
 const GH_BRANCH = process.env.GITHUB_BRANCH || "main";
 const GH_ENABLED = !!(GH_TOKEN && GH_REPO);
 const GH_SHA_CACHE = {}; // relPath -> last known blob sha, avoids an extra GET before every PUT
+let GH_WRITE_VERIFIED = null; // null = not tested yet, true/false after boot self-test
 
 function ghHeaders() {
   return {
@@ -46,7 +56,10 @@ async function githubGetFile(relPath) {
     const url = `https://api.github.com/repos/${GH_REPO}/contents/${relPath}?ref=${encodeURIComponent(GH_BRANCH)}`;
     const res = await fetch(url, { headers: ghHeaders() });
     if (res.status === 404) return null;
-    if (!res.ok) { console.error(`GitHub GET ${relPath} failed:`, res.status); return null; }
+    if (!res.ok) {
+      console.error(`GitHub GET ${relPath} failed: ${res.status} ${await res.text().catch(() => "")}`);
+      return null;
+    }
     const json = await res.json();
     GH_SHA_CACHE[relPath] = json.sha;
     return Buffer.from(json.content, "base64").toString("utf8");
@@ -57,7 +70,7 @@ async function githubGetFile(relPath) {
 }
 
 async function githubPutFile(relPath, content) {
-  if (!GH_ENABLED) return false;
+  if (!GH_ENABLED) return { ok: false, reason: "sync disabled" };
   try {
     const url = `https://api.github.com/repos/${GH_REPO}/contents/${relPath}`;
     const body = {
@@ -66,33 +79,36 @@ async function githubPutFile(relPath, content) {
       branch: GH_BRANCH
     };
     if (GH_SHA_CACHE[relPath]) body.sha = GH_SHA_CACHE[relPath];
-    const res = await fetch(url, { method: "PUT", headers: ghHeaders(), body: JSON.stringify(body) });
+    let res = await fetch(url, { method: "PUT", headers: ghHeaders(), body: JSON.stringify(body) });
+
     if (res.status === 409 || res.status === 422) {
-      // sha mismatch (someone/something else updated the file) \u2014 refetch and retry once
       const fresh = await fetch(url + `?ref=${encodeURIComponent(GH_BRANCH)}`, { headers: ghHeaders() });
       if (fresh.ok) {
         const j = await fresh.json();
         GH_SHA_CACHE[relPath] = j.sha;
         body.sha = j.sha;
-        const retry = await fetch(url, { method: "PUT", headers: ghHeaders(), body: JSON.stringify(body) });
-        if (retry.ok) { GH_SHA_CACHE[relPath] = (await retry.json()).content.sha; return true; }
+        res = await fetch(url, { method: "PUT", headers: ghHeaders(), body: JSON.stringify(body) });
       }
-      return false;
     }
-    if (!res.ok) { console.error(`GitHub PUT ${relPath} failed:`, res.status, await res.text()); return false; }
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.error(`GitHub PUT ${relPath} failed: ${res.status} ${errText}`);
+      return { ok: false, reason: `HTTP ${res.status}`, detail: errText };
+    }
     const j = await res.json();
     GH_SHA_CACHE[relPath] = j.content.sha;
-    return true;
+    return { ok: true };
   } catch (err) {
     console.error(`GitHub PUT ${relPath} error:`, err.message);
-    return false;
+    return { ok: false, reason: err.message };
   }
 }
 
 async function restoreFromGitHubIfMissing(localFile, relPath) {
   if (!GH_ENABLED) return;
   try {
-    if (fs.existsSync(localFile)) return; // local copy already present, nothing to restore
+    if (fs.existsSync(localFile)) return;
     const remote = await githubGetFile(relPath);
     if (remote !== null) {
       fs.writeFileSync(localFile, remote);
@@ -105,10 +121,10 @@ async function restoreFromGitHubIfMissing(localFile, relPath) {
 
 async function restoreAllFromGitHub() {
   if (!GH_ENABLED) {
-    console.log("GitHub sync disabled (set GITHUB_TOKEN + GITHUB_REPO env vars to enable). Data will NOT survive a Render restart on the free tier.");
+    console.log("GitHub sync: DISABLED (set GITHUB_TOKEN + GITHUB_REPO env vars to enable). Data will NOT survive a restart on a host without a persistent disk.");
     return;
   }
-  console.log(`GitHub sync enabled -> ${GH_REPO}@${GH_BRANCH}`);
+  console.log(`GitHub sync: configured -> ${GH_REPO}@${GH_BRANCH} (verifying write access next...)`);
   await restoreFromGitHubIfMissing(DATA_FILE, "survey-responses.json");
   await restoreFromGitHubIfMissing(COUNTER_FILE, "participant-counter.json");
   await restoreFromGitHubIfMissing(STARTS_FILE, "survey-starts.json");
@@ -116,29 +132,24 @@ async function restoreAllFromGitHub() {
   await restoreFromGitHubIfMissing(TARGET_FILE, "sample-target.json");
 }
 
-const apiHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,POST,OPTIONS,DELETE",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Cache-Control": "no-store"
-};
-
-function send(res, status, body, headers = {}) {
-  res.writeHead(status, { ...headers, ...apiHeaders });
-  res.end(body);
-}
-
-function readRows() {
-  try {
-    if (!fs.existsSync(DATA_FILE)) return [];
-    const parsed = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (err) {
-    console.error("Could not read survey-responses.json:", err.message);
-    return [];
+async function verifyGithubWriteAccess() {
+  if (!GH_ENABLED) { GH_WRITE_VERIFIED = false; return; }
+  const canaryPath = "_sync_check.json";
+  const stamp = JSON.stringify({ checkedAt: new Date().toISOString() });
+  const result = await githubPutFile(canaryPath, stamp);
+  if (result.ok) {
+    GH_WRITE_VERIFIED = true;
+    console.log("GitHub sync: \u2705 WRITE ACCESS VERIFIED \u2014 your token can actually save data. You're good.");
+  } else {
+    GH_WRITE_VERIFIED = false;
+    console.log("GitHub sync: \u274c WRITE ACCESS FAILED \u2014 the token is set but cannot write to this repo.");
+    console.log(`  Reason: ${result.reason || "unknown"} ${result.detail ? "- " + result.detail : ""}`);
+    console.log("  Fix: use a classic token (Settings > Developer settings > Tokens (classic)) with the 'repo' scope,");
+    console.log("  or check that your fine-grained token has Contents: Read and write on this exact repo.");
   }
 }
 
+// ── LOCAL BACKUPS ────────────────────────────────────────────────────────────
 function backupBeforeWrite() {
   try {
     if (!fs.existsSync(DATA_FILE)) return;
@@ -158,6 +169,18 @@ function backupBeforeWrite() {
   }
 }
 
+// ── RESPONSE DATA ────────────────────────────────────────────────────────────
+function readRows() {
+  try {
+    if (!fs.existsSync(DATA_FILE)) return [];
+    const parsed = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error("Could not read survey-responses.json:", err.message);
+    return [];
+  }
+}
+
 function writeRows(rows) {
   backupBeforeWrite();
   const content = JSON.stringify(rows, null, 2);
@@ -167,19 +190,27 @@ function writeRows(rows) {
   githubPutFile("survey-responses.json", content).catch(() => {});
 }
 
-function readRequestBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    req.on("data", chunk => {
-      body += chunk;
-      if (body.length > 2_000_000) {
-        reject(new Error("Request body too large"));
-        req.destroy();
-      }
-    });
-    req.on("end", () => resolve(body));
-    req.on("error", reject);
+function upsertRow(row) {
+  const rows = readRows();
+  const pid = String(row.pid || row.participant_id || `p${Date.now()}${Math.random().toString(36).slice(2, 8)}`);
+  const normalized = { ...row, pid };
+  const index = rows.findIndex(item => String(item.pid || item.participant_id) === pid);
+  if (index >= 0) rows[index] = normalized;
+  else rows.push(normalized);
+  writeRows(rows);
+  return { row: normalized, count: rows.length };
+}
+
+function deleteRow(identity) {
+  const rows = readRows();
+  const next = rows.filter(item => {
+    const pid = String(item.pid || item.participant_id || "");
+    const date = String(item.date || "");
+    return pid !== identity && date !== identity;
   });
+  const removed = rows.length - next.length;
+  if (removed > 0) writeRows(next);
+  return removed;
 }
 
 function nextParticipantId() {
@@ -204,30 +235,7 @@ function nextParticipantId() {
   return "participant" + n;
 }
 
-function deleteRow(identity) {
-  const rows = readRows();
-  const id = String(identity);
-  const next = rows.filter(item => {
-    const pid = String(item.pid || item.participant_id || "");
-    const date = String(item.date || "");
-    return pid !== id && date !== id;
-  });
-  const removed = rows.length - next.length;
-  if (removed > 0) writeRows(next);
-  return removed;
-}
-
-function upsertRow(row) {
-  const rows = readRows();
-  const pid = String(row.pid || row.participant_id || `p${Date.now()}${Math.random().toString(36).slice(2, 8)}`);
-  const normalized = { ...row, pid };
-  const index = rows.findIndex(item => String(item.pid || item.participant_id) === pid);
-  if (index >= 0) rows[index] = normalized;
-  else rows.push(normalized);
-  writeRows(rows);
-  return { row: normalized, count: rows.length };
-}
-
+// ── FUNNEL TRACKING (starts / dropouts) ──────────────────────────────────────
 function readStarts() {
   try {
     if (!fs.existsSync(STARTS_FILE)) return [];
@@ -274,6 +282,7 @@ function appendDropout(entry) {
   return dropouts.length;
 }
 
+// ── SAMPLE-SIZE TARGET ───────────────────────────────────────────────────────
 function readTarget() {
   try {
     if (!fs.existsSync(TARGET_FILE)) return 60;
@@ -294,6 +303,20 @@ function writeTarget(n) {
   githubPutFile("sample-target.json", content).catch(() => {});
 }
 
+// ── ADMIN RESET (wipes everything, locally AND on GitHub) ───────────────────
+function resetAllData() {
+  writeRows([]);
+  const counterContent = JSON.stringify({ next: 1 }, null, 2);
+  fs.writeFileSync(COUNTER_FILE, counterContent);
+  githubPutFile("participant-counter.json", counterContent).catch(() => {});
+  fs.writeFileSync(STARTS_FILE, "[]");
+  githubPutFile("survey-starts.json", "[]").catch(() => {});
+  fs.writeFileSync(DROPOUTS_FILE, "[]");
+  githubPutFile("survey-dropouts.json", "[]").catch(() => {});
+  console.log("ADMIN RESET: all response/counter/starts/dropouts data wiped");
+}
+
+// ── MISC HELPERS ─────────────────────────────────────────────────────────────
 function networkUrls() {
   const urls = [];
   for (const entries of Object.values(os.networkInterfaces())) {
@@ -304,17 +327,85 @@ function networkUrls() {
   return urls;
 }
 
+function readRequestBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.on("data", chunk => {
+      body += chunk;
+      if (body.length > 2_000_000) {
+        reject(new Error("Request body too large"));
+        req.destroy();
+      }
+    });
+    req.on("end", () => resolve(body));
+    req.on("error", reject);
+  });
+}
+
+function send(res, status, body, headers = {}) {
+  res.writeHead(status, {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    ...headers
+  });
+  res.end(body);
+}
+
+const startedAt = Date.now();
+
+// ── HTTP SERVER ───────────────────────────────────────────────────────────────
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  let url;
+  try {
+    url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  } catch (err) {
+    return send(res, 400, "Bad request");
+  }
 
-  if (req.method === "OPTIONS") return send(res, 204, "");
+  if (req.method === "OPTIONS") {
+    return send(res, 204, "");
+  }
 
-  if (url.pathname === "/api/health") {
-    return send(res, 200, JSON.stringify({ ok: true }), { "Content-Type": "application/json; charset=utf-8" });
+  if (url.pathname === "/api/health" && req.method === "GET") {
+    return send(res, 200, JSON.stringify({
+      ok: true,
+      uptimeSec: Math.round((Date.now() - startedAt) / 1000),
+      githubSync: {
+        configured: GH_ENABLED,
+        writeVerified: GH_WRITE_VERIFIED,
+        repo: GH_ENABLED ? `${GH_REPO}@${GH_BRANCH}` : null
+      },
+      counts: {
+        responses: readRows().length,
+        starts: readStarts().length,
+        dropouts: readDropouts().length
+      },
+      sampleTarget: readTarget()
+    }, null, 2), { "Content-Type": "application/json; charset=utf-8" });
   }
 
   if (url.pathname === "/api/responses" && req.method === "GET") {
     return send(res, 200, JSON.stringify(readRows()), { "Content-Type": "application/json; charset=utf-8" });
+  }
+
+  if (url.pathname === "/api/responses" && req.method === "POST") {
+    try {
+      const row = JSON.parse(await readRequestBody(req));
+      if (!row || typeof row !== "object" || Array.isArray(row)) {
+        return send(res, 400, JSON.stringify({ ok: false, error: "Expected a response object" }), { "Content-Type": "application/json; charset=utf-8" });
+      }
+      const saved = upsertRow(row);
+      return send(res, 200, JSON.stringify({ ok: true, count: saved.count, pid: saved.row.pid }), { "Content-Type": "application/json; charset=utf-8" });
+    } catch (err) {
+      return send(res, 400, JSON.stringify({ ok: false, error: err.message }), { "Content-Type": "application/json; charset=utf-8" });
+    }
+  }
+
+  if (url.pathname.startsWith("/api/responses/") && req.method === "DELETE") {
+    const identity = decodeURIComponent(url.pathname.slice("/api/responses/".length));
+    const removed = deleteRow(identity);
+    return send(res, 200, JSON.stringify({ ok: true, removed }), { "Content-Type": "application/json; charset=utf-8" });
   }
 
   if (url.pathname === "/api/next-id" && req.method === "GET") {
@@ -337,16 +428,7 @@ const server = http.createServer(async (req, res) => {
       if (typeof body.password !== "string" || body.password !== ADMIN_PASSWORD) {
         return send(res, 401, JSON.stringify({ ok: false, error: "wrong password" }), { "Content-Type": "application/json; charset=utf-8" });
       }
-      // Wipe every tracked file, locally AND on GitHub, so a restart/redeploy can't silently restore old data.
-      writeRows([]); // also creates a local rolling backup of what existed before, via backupBeforeWrite()
-      const counterContent = JSON.stringify({ next: 1 }, null, 2);
-      fs.writeFileSync(COUNTER_FILE, counterContent);
-      githubPutFile("participant-counter.json", counterContent).catch(() => {});
-      fs.writeFileSync(STARTS_FILE, "[]");
-      githubPutFile("survey-starts.json", "[]").catch(() => {});
-      fs.writeFileSync(DROPOUTS_FILE, "[]");
-      githubPutFile("survey-dropouts.json", "[]").catch(() => {});
-      console.log("ADMIN RESET: all response/counter/starts/dropouts data wiped");
+      resetAllData();
       return send(res, 200, JSON.stringify({ ok: true }), { "Content-Type": "application/json; charset=utf-8" });
     } catch (err) {
       return send(res, 500, JSON.stringify({ ok: false, error: err.message }), { "Content-Type": "application/json; charset=utf-8" });
@@ -365,15 +447,16 @@ const server = http.createServer(async (req, res) => {
       const total = appendDropout(body);
       return send(res, 200, JSON.stringify({ ok: true, total }), { "Content-Type": "application/json; charset=utf-8" });
     } catch (err) {
-      return send(res, 200, JSON.stringify({ ok: false }), { "Content-Type": "application/json; charset=utf-8" }); // never error out on a best-effort beacon
+      return send(res, 200, JSON.stringify({ ok: false }), { "Content-Type": "application/json; charset=utf-8" });
     }
   }
 
   if (url.pathname === "/api/stats" && req.method === "GET") {
-    const starts = readStarts().length;
-    const completions = readRows().length;
-    const dropouts = readDropouts().length;
-    return send(res, 200, JSON.stringify({ starts, completions, dropouts }), { "Content-Type": "application/json; charset=utf-8" });
+    return send(res, 200, JSON.stringify({
+      starts: readStarts().length,
+      completions: readRows().length,
+      dropouts: readDropouts().length
+    }), { "Content-Type": "application/json; charset=utf-8" });
   }
 
   if (url.pathname === "/api/target" && req.method === "GET") {
@@ -392,35 +475,13 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (url.pathname.startsWith("/api/responses/") && req.method === "DELETE") {
-    const pid = decodeURIComponent(url.pathname.slice("/api/responses/".length));
-    if (!pid) {
-      return send(res, 400, JSON.stringify({ ok: false, error: "Missing participant id" }), { "Content-Type": "application/json; charset=utf-8" });
-    }
-    const removed = deleteRow(pid);
-    return send(res, 200, JSON.stringify({ ok: true, removed }), { "Content-Type": "application/json; charset=utf-8" });
-  }
-
-  if (url.pathname === "/api/responses" && req.method === "POST") {
-    try {
-      const row = JSON.parse(await readRequestBody(req));
-      if (!row || typeof row !== "object" || Array.isArray(row)) {
-        return send(res, 400, JSON.stringify({ ok: false, error: "Expected a response object" }), { "Content-Type": "application/json; charset=utf-8" });
-      }
-      const saved = upsertRow(row);
-      return send(res, 200, JSON.stringify({ ok: true, count: saved.count, pid: saved.row.pid }), { "Content-Type": "application/json; charset=utf-8" });
-    } catch (err) {
-      return send(res, 400, JSON.stringify({ ok: false, error: err.message }), { "Content-Type": "application/json; charset=utf-8" });
-    }
-  }
-
   if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/full.html")) {
     fs.readFile(HTML_FILE, (err, data) => {
       if (err) {
         res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
-        return res.end("Could not read full.html");
+        return res.end("Could not load full.html: " + err.message);
       }
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(data);
     });
     return;
@@ -430,12 +491,24 @@ const server = http.createServer(async (req, res) => {
   res.end("Not found");
 });
 
+// ── BOOT SEQUENCE ─────────────────────────────────────────────────────────────
 (async () => {
   await restoreAllFromGitHub();
+  await verifyGithubWriteAccess();
+
   server.listen(PORT, "0.0.0.0", () => {
+    console.log("═══════════════════════════════════════════════════");
     console.log("Survey collector running");
     console.log(`Local:   http://localhost:${PORT}`);
     for (const url of networkUrls()) console.log(`Network: ${url}`);
-    console.log("Responses will be saved to survey-responses.json" + (GH_ENABLED ? " and synced to GitHub" : " (LOCAL ONLY \u2014 will not survive a restart on Render's free tier)"));
+    console.log(`Health check: /api/health`);
+    if (GH_ENABLED && GH_WRITE_VERIFIED) {
+      console.log("Data persistence: \u2705 local disk + GitHub (verified working)");
+    } else if (GH_ENABLED && !GH_WRITE_VERIFIED) {
+      console.log("Data persistence: \u26a0\ufe0f  local disk ONLY \u2014 GitHub sync is configured but NOT working, see errors above");
+    } else {
+      console.log("Data persistence: \u26a0\ufe0f  local disk ONLY \u2014 will NOT survive a restart on a host without a persistent disk");
+    }
+    console.log("═══════════════════════════════════════════════════");
   });
 })();
