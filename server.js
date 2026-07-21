@@ -288,14 +288,53 @@ function writeRows(rows) {
   githubPutFile("survey-responses.json", content).catch(() => {});
 }
 
+function getNextParticipantId() {
+  const rows = readRows();
+  let maxNum = 0;
+  for (const r of rows) {
+    const pid = String(r.pid || r.participant_id || "");
+    const match = pid.match(/^participant(\d+)$/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNum) maxNum = num;
+    }
+  }
+  let counterNext = maxNum + 1;
+  try {
+    if (fs.existsSync(COUNTER_FILE)) {
+      const c = JSON.parse(fs.readFileSync(COUNTER_FILE, "utf8"));
+      if (Number(c.next) > counterNext) counterNext = Number(c.next);
+    }
+  } catch (e) {}
+
+  const finalNext = Math.max(maxNum + 1, counterNext, rows.length + 1);
+  return "participant" + finalNext;
+}
+
+function updateCounterAfterSave(pid) {
+  const match = String(pid || "").match(/^participant(\d+)$/i);
+  if (match) {
+    const num = parseInt(match[1], 10);
+    const nextVal = num + 1;
+    const content = JSON.stringify({ next: nextVal }, null, 2);
+    try {
+      fs.writeFileSync(COUNTER_FILE, content);
+    } catch (err) {
+      console.error("Could not persist participant counter:", err.message);
+    }
+    githubPutFile("participant-counter.json", content).catch(() => {});
+  }
+}
+
 function upsertRow(row) {
   const rows = readRows();
-  const pid = String(row.pid || row.participant_id || `p${Date.now()}${Math.random().toString(36).slice(2, 8)}`);
+  const pid = String(row.pid || row.participant_id || getNextParticipantId());
   const normalized = { ...row, pid };
   const index = rows.findIndex(item => String(item.pid || item.participant_id) === pid);
   if (index >= 0) rows[index] = normalized;
   else rows.push(normalized);
   writeRows(rows);
+  updateCounterAfterSave(pid);
   return { row: normalized, count: rows.length };
 }
 
@@ -309,28 +348,6 @@ function deleteRow(identity) {
   const removed = rows.length - next.length;
   if (removed > 0) writeRows(next);
   return removed;
-}
-
-function nextParticipantId() {
-  let n = 1;
-  try {
-    if (fs.existsSync(COUNTER_FILE)) {
-      const c = JSON.parse(fs.readFileSync(COUNTER_FILE, "utf8"));
-      n = Number(c.next) || 1;
-    } else {
-      n = readRows().length + 1;
-    }
-  } catch (err) {
-    n = readRows().length + 1;
-  }
-  const content = JSON.stringify({ next: n + 1 }, null, 2);
-  try {
-    fs.writeFileSync(COUNTER_FILE, content);
-  } catch (err) {
-    console.error("Could not persist participant counter:", err.message);
-  }
-  githubPutFile("participant-counter.json", content).catch(() => {});
-  return "participant" + n;
 }
 
 // ── FUNNEL TRACKING (starts / dropouts) ──────────────────────────────────────
@@ -507,7 +524,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === "/api/next-id" && req.method === "GET") {
-    return send(res, 200, JSON.stringify({ id: nextParticipantId() }), { "Content-Type": "application/json; charset=utf-8" });
+    return send(res, 200, JSON.stringify({ id: getNextParticipantId() }), { "Content-Type": "application/json; charset=utf-8" });
   }
 
   if (url.pathname === "/api/admin-auth" && req.method === "POST") {
