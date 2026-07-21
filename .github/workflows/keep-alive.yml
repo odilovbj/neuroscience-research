@@ -1,0 +1,31 @@
+name: Keep Server Awake
+
+# Pings the live site every 10 minutes so Render's free tier never sees
+# 15 minutes of inactivity and spins the server down. This trades a small
+# amount of constant background traffic for eliminating the ~30-60 second
+# cold-start delay that real participants were hitting.
+#
+# Note: GitHub's scheduled workflows are not perfectly punctual — they can
+# run a few minutes late during periods of high GitHub-wide load. This
+# makes a spin-down very unlikely but not mathematically impossible in
+# rare edge cases. If you ever notice the delay coming back occasionally,
+# that's why — it's not a sign anything is broken.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the live site
+        run: |
+          URL="https://neuroscienceresearch.onrender.com/"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          echo "Pinged $URL -> HTTP $HTTP_CODE"
+          # Deliberately not failing the workflow on a bad response here —
+          # this job's only purpose is to generate traffic to keep the
+          # instance warm. The separate "Survey Server Health Check"
+          # workflow is the one that actually alerts you if something's
+          # genuinely wrong.
