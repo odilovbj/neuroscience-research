@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use or reference this survey instrument, please cite it as below."
+title: "Migraine, Sleep & Memory: An Adolescent Research Survey"
+type: software
+authors:
+  - name: "Bekzod Odilov"
+    affiliation: "Specialized School №1, Navoi City"
+repository-code: "https://github.com/odilovbj/neuroscience-research"
+url: "https://neuroscienceresearch.onrender.com"
+abstract: >
+  A trilingual (Uzbek, Russian, English) web-based research survey
+  investigating whether sleep quality mediates the relationship between
+  adolescent migraine and working memory. Combines the ID-Migraine
+  screener (Lipton et al., 2003), the Pittsburgh Sleep Quality Index
+  (Buysse et al., 1989), and a 2-back working memory task scored via
+  signal detection theory.
+keywords:
+  - migraine
+  - sleep
+  - working memory
+  - adolescent health
+  - psychometrics
+  - PSQI
+  - ID-Migraine
+  - n-back task
+license: UNLICENSED
+date-released: 2026-07-20
