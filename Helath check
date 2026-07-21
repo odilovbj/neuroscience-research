@@ -1,0 +1,48 @@
+name: Survey Server Health Check
+
+# Runs automatically every 6 hours, and can also be triggered manually
+# from the Actions tab. If the server is down OR GitHub sync stops
+# working, this workflow fails — and GitHub emails you automatically
+# when a scheduled workflow fails. No extra setup needed for that part.
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  check-health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check /api/health
+        run: |
+          URL="https://neuroscienceresearch.onrender.com/api/health"
+          echo "Checking $URL ..."
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" "$URL")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response body:"
+          echo "$BODY"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Server did not respond with 200 (got $HTTP_CODE). It may be down."
+            exit 1
+          fi
+
+          OK=$(echo "$BODY" | grep -oE '"ok":[[:space:]]*[a-z]*' | head -1 | grep -oE '[a-z]*$')
+          if [ "$OK" != "true" ]; then
+            echo "::error::Server responded but reported ok:false"
+            exit 1
+          fi
+
+          GH_CONFIGURED=$(echo "$BODY" | grep -oE '"configured":[[:space:]]*[a-z]*' | head -1 | grep -oE '[a-z]*$')
+          GH_VERIFIED=$(echo "$BODY" | grep -oE '"writeVerified":[[:space:]]*[a-z]*' | head -1 | grep -oE '[a-z]*$')
+
+          if [ "$GH_CONFIGURED" = "true" ] && [ "$GH_VERIFIED" != "true" ]; then
+            echo "::error::GitHub sync is configured but writeVerified is not true — data may not be persisting across restarts. Check Render env vars (GITHUB_TOKEN permissions)."
+            exit 1
+          fi
+
+          echo "✅ Server is healthy and GitHub sync is verified working."
