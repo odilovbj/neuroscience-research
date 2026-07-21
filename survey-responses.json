@@ -1,1 +1,81 @@
-[]
+[
+  {
+    "pid": "participant1",
+    "date": "2026-07-21T14:30:33.983Z",
+    "lang": "uz",
+    "dur": 128,
+    "localHour": 19,
+    "appVersion": "1.2.0",
+    "preview": false,
+    "meta": {
+      "device": "mobile",
+      "browser": "safari",
+      "screenW": 390,
+      "screenH": 844,
+      "viewportW": 390,
+      "tz": "Asia/Samarkand"
+    },
+    "demo": {
+      "age": "15",
+      "sex": "m",
+      "grade": "9",
+      "ha": "yoq",
+      "ctx_sleep": "5to7",
+      "ctx_caffeine": "ha",
+      "ctx_meds": "ha"
+    },
+    "migraine": {
+      "q0": "ha",
+      "q1": "yoq",
+      "q2": "ha",
+      "freq": "1",
+      "score": 2,
+      "likely": true
+    },
+    "psqi": {
+      "global": 8,
+      "q1": "00:30",
+      "q2": 1,
+      "q3": "07:00",
+      "q4": 2,
+      "5a": 2,
+      "5b": 0,
+      "5c": 0,
+      "5d": 0,
+      "5e": 0,
+      "5f": 1,
+      "5g": 1,
+      "5h": 1,
+      "5i": 0,
+      "p6": 1,
+      "p7": 0,
+      "p8": 2,
+      "p9": 1
+    },
+    "nback": {
+      "acc": 68,
+      "hitAcc": 89,
+      "dprime": 1.317,
+      "bias": -0.562,
+      "meanRT": 799,
+      "medRT": 876,
+      "hits": 8,
+      "misses": 1,
+      "fa": 6,
+      "cr": 7,
+      "nTargets": 9,
+      "nNonTargets": 13,
+      "targetRatio": 0.41
+    },
+    "qc": {
+      "attnPass": true,
+      "attnAnswered": true,
+      "fast": true,
+      "anticipatory": false,
+      "straightLine": false,
+      "timeInconsistent": false,
+      "fatigue": 3,
+      "excludeRecommended": true
+    }
+  }
+]
