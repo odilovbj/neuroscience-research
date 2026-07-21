@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="survey-api" content="https://neuroscienceresearch.onrender.com">
 <title>Migraine, Sleep & Memory — Scientific Study</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -620,8 +621,12 @@ const FE=['😌','🙂','😐','😴'];
 
 // ═══ STORAGE (server + local backup) ════════════════════════════════════
 const API_BASE=(()=>{
+  try{
+    const custom=localStorage.getItem('tadqiqot_api_url')?.trim();
+    if(custom)return custom.replace(/\/$/,'');
+  }catch(e){}
   const meta=document.querySelector('meta[name="survey-api"]')?.content?.trim();
-  if(meta)return meta.replace(/\/$/,'');
+  if(meta&&location.hostname!=='localhost'&&!location.hostname.includes('127.0.0.1'))return meta.replace(/\/$/,'');
   return location.protocol==='file:'?'http://localhost:8787':'';
 })();
 let STORE_STATUS={api:false,apiCount:0,artifact:false,localCount:0};

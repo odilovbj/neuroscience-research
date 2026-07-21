@@ -105,31 +105,129 @@ async function githubPutFile(relPath, content) {
   }
 }
 
-async function restoreFromGitHubIfMissing(localFile, relPath) {
-  if (!GH_ENABLED) return;
-  try {
-    if (fs.existsSync(localFile)) return;
-    const remote = await githubGetFile(relPath);
-    if (remote !== null) {
-      fs.writeFileSync(localFile, remote);
-      console.log(`Restored ${relPath} from GitHub (${remote.length} bytes)`);
-    }
-  } catch (err) {
-    console.error(`Restore ${relPath} from GitHub failed:`, err.message);
-  }
-}
-
 async function restoreAllFromGitHub() {
   if (!GH_ENABLED) {
     console.log("GitHub sync: DISABLED (set GITHUB_TOKEN + GITHUB_REPO env vars to enable). Data will NOT survive a restart on a host without a persistent disk.");
     return;
   }
-  console.log(`GitHub sync: configured -> ${GH_REPO}@${GH_BRANCH} (verifying write access next...)`);
-  await restoreFromGitHubIfMissing(DATA_FILE, "survey-responses.json");
-  await restoreFromGitHubIfMissing(COUNTER_FILE, "participant-counter.json");
-  await restoreFromGitHubIfMissing(STARTS_FILE, "survey-starts.json");
-  await restoreFromGitHubIfMissing(DROPOUTS_FILE, "survey-dropouts.json");
-  await restoreFromGitHubIfMissing(TARGET_FILE, "sample-target.json");
+  console.log(`GitHub sync: configured -> ${GH_REPO}@${GH_BRANCH} (fetching & merging remote data...)`);
+  
+  // 1. Survey responses: merge local and GitHub remote
+  try {
+    const remoteStr = await githubGetFile("survey-responses.json");
+    let remoteRows = [];
+    if (remoteStr !== null) {
+      try {
+        const p = JSON.parse(remoteStr);
+        if (Array.isArray(p)) remoteRows = p;
+      } catch (e) {}
+    }
+    const localRows = readRows();
+    const rowMap = new Map();
+    const rKey = r => String(r.pid || r.participant_id || (r.date + Math.random()));
+    localRows.forEach(r => rowMap.set(rKey(r), r));
+    remoteRows.forEach(r => {
+      const k = rKey(r);
+      if (!rowMap.has(k)) {
+        rowMap.set(k, r);
+      } else {
+        const existing = rowMap.get(k);
+        if (Object.keys(r).length > Object.keys(existing).length) {
+          rowMap.set(k, r);
+        }
+      }
+    });
+    const merged = Array.from(rowMap.values());
+    merged.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    
+    const content = JSON.stringify(merged, null, 2);
+    const tmp = DATA_FILE + ".tmp";
+    fs.writeFileSync(tmp, content);
+    fs.renameSync(tmp, DATA_FILE);
+    console.log(`Synced survey-responses.json (${merged.length} total responses)`);
+    
+    if (merged.length > remoteRows.length) {
+      await githubPutFile("survey-responses.json", content);
+    }
+  } catch (err) {
+    console.error("Sync survey-responses.json failed:", err.message);
+  }
+
+  // 2. Participant counter: take max(local, remote)
+  try {
+    const remoteStr = await githubGetFile("participant-counter.json");
+    let remoteNext = 1;
+    if (remoteStr !== null) {
+      try { remoteNext = Number(JSON.parse(remoteStr).next) || 1; } catch (e) {}
+    }
+    let localNext = 1;
+    if (fs.existsSync(COUNTER_FILE)) {
+      try { localNext = Number(JSON.parse(fs.readFileSync(COUNTER_FILE, "utf8")).next) || 1; } catch (e) {}
+    }
+    const highestNext = Math.max(localNext, remoteNext, readRows().length + 1);
+    const cContent = JSON.stringify({ next: highestNext }, null, 2);
+    fs.writeFileSync(COUNTER_FILE, cContent);
+    if (highestNext > remoteNext) {
+      await githubPutFile("participant-counter.json", cContent);
+    }
+  } catch (err) {
+    console.error("Sync participant-counter.json failed:", err.message);
+  }
+
+  // 3. Survey starts
+  try {
+    const remoteStr = await githubGetFile("survey-starts.json");
+    let remoteStarts = [];
+    if (remoteStr !== null) {
+      try {
+        const p = JSON.parse(remoteStr);
+        if (Array.isArray(p)) remoteStarts = p;
+      } catch (e) {}
+    }
+    const localStarts = readStarts();
+    const startsMap = new Map();
+    localStarts.forEach(s => startsMap.set(s.date, s));
+    remoteStarts.forEach(s => startsMap.set(s.date, s));
+    const mergedStarts = Array.from(startsMap.values());
+    const sContent = JSON.stringify(mergedStarts, null, 2);
+    fs.writeFileSync(STARTS_FILE, sContent);
+  } catch (err) {
+    console.error("Sync survey-starts.json failed:", err.message);
+  }
+
+  // 4. Survey dropouts
+  try {
+    const remoteStr = await githubGetFile("survey-dropouts.json");
+    let remoteDropouts = [];
+    if (remoteStr !== null) {
+      try {
+        const p = JSON.parse(remoteStr);
+        if (Array.isArray(p)) remoteDropouts = p;
+      } catch (e) {}
+    }
+    const localDropouts = readDropouts();
+    const dropoutsMap = new Map();
+    localDropouts.forEach(d => dropoutsMap.set(d.date + "_" + d.step, d));
+    remoteDropouts.forEach(d => dropoutsMap.set(d.date + "_" + d.step, d));
+    const mergedDropouts = Array.from(dropoutsMap.values());
+    const dContent = JSON.stringify(mergedDropouts, null, 2);
+    fs.writeFileSync(DROPOUTS_FILE, dContent);
+  } catch (err) {
+    console.error("Sync survey-dropouts.json failed:", err.message);
+  }
+
+  // 5. Sample target
+  try {
+    const remoteStr = await githubGetFile("sample-target.json");
+    if (remoteStr !== null) {
+      try {
+        const t = Number(JSON.parse(remoteStr).target);
+        if (t > 0) fs.writeFileSync(TARGET_FILE, JSON.stringify({ target: t }, null, 2));
+      } catch (e) {}
+    }
+  } catch (err) {
+    console.error("Sync sample-target.json failed:", err.message);
+  }
 }
 
 async function verifyGithubWriteAccess() {
