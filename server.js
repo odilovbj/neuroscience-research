@@ -331,6 +331,28 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (url.pathname === "/api/admin-reset" && req.method === "POST") {
+    try {
+      const body = JSON.parse(await readRequestBody(req));
+      if (typeof body.password !== "string" || body.password !== ADMIN_PASSWORD) {
+        return send(res, 401, JSON.stringify({ ok: false, error: "wrong password" }), { "Content-Type": "application/json; charset=utf-8" });
+      }
+      // Wipe every tracked file, locally AND on GitHub, so a restart/redeploy can't silently restore old data.
+      writeRows([]); // also creates a local rolling backup of what existed before, via backupBeforeWrite()
+      const counterContent = JSON.stringify({ next: 1 }, null, 2);
+      fs.writeFileSync(COUNTER_FILE, counterContent);
+      githubPutFile("participant-counter.json", counterContent).catch(() => {});
+      fs.writeFileSync(STARTS_FILE, "[]");
+      githubPutFile("survey-starts.json", "[]").catch(() => {});
+      fs.writeFileSync(DROPOUTS_FILE, "[]");
+      githubPutFile("survey-dropouts.json", "[]").catch(() => {});
+      console.log("ADMIN RESET: all response/counter/starts/dropouts data wiped");
+      return send(res, 200, JSON.stringify({ ok: true }), { "Content-Type": "application/json; charset=utf-8" });
+    } catch (err) {
+      return send(res, 500, JSON.stringify({ ok: false, error: err.message }), { "Content-Type": "application/json; charset=utf-8" });
+    }
+  }
+
   if (url.pathname === "/api/starts" && req.method === "POST") {
     const total = appendStart();
     return send(res, 200, JSON.stringify({ ok: true, total }), { "Content-Type": "application/json; charset=utf-8" });
