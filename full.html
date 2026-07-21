@@ -1715,6 +1715,7 @@ async function finishNback(fatigue){
     return;
   }
   const saved=await saveData(payload);
+  S.saveStatus=saved.shared?'server':'local-only';
   if(!saved.shared){
     toast('⚠️ '+(LANG==='en'?'Saved only on this device - start the collector server for shared data':LANG==='ru'?'Сохранено только на этом устройстве':'Faqat shu qurilmada saqlandi'),'var(--yellow)');
   }
@@ -1738,8 +1739,14 @@ function s8(){
     let cls='na';if(x.isM&&x.responded&&x.correct)cls='ok';else if(x.isM&&!x.responded)cls='miss';else if(!x.isM&&x.responded)cls='err';
     return `<div class="dot ${cls}" style="animation:popIn .3s ${i*.028}s backwards"></div>`;
   }).join('');
+  const saveBanner=S.saveStatus==='local-only'
+    ?`<div style="background:var(--red);color:#fff;padding:12px 16px;border-radius:var(--rs);border:2px solid var(--border2);box-shadow:4px 4px 0 rgba(0,0,0,.4);margin-bottom:14px;font-size:13px;font-weight:700;text-align:center;">⚠️ ${LANG==='en'?"Could NOT confirm this saved to the shared server \u2014 it's only stored in this browser right now.":LANG==='ru'?'НЕ удалось подтвердить сохранение на сервере \u2014 сейчас данные только в этом браузере.':"Bu javob serverga saqlanganini TASDIQLAB bo'lmadi \u2014 hozircha faqat shu brauzerda saqlangan."}</div>`
+    :S.saveStatus==='server'
+    ?`<div style="background:var(--green);color:#04180e;padding:10px 16px;border-radius:var(--rs);border:2px solid var(--border2);box-shadow:4px 4px 0 rgba(0,0,0,.4);margin-bottom:14px;font-size:13px;font-weight:700;text-align:center;">✅ ${LANG==='en'?'Confirmed saved to the server':LANG==='ru'?'Подтверждено: сохранено на сервере':'Serverga saqlangani tasdiqlandi'}</div>`
+    :'';
   app.innerHTML=`<style>@keyframes popIn{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}</style>
   <div class="screen active" id="sc8">
+  ${saveBanner}
   <div class="card" style="text-align:center;"><div class="card-inner">
     <div style="font-size:48px;margin-bottom:10px;animation:starPop .7s cubic-bezier(.34,1.56,.64,1);">🎉</div>
     <h2>${t('res_t')}</h2>
@@ -1938,6 +1945,78 @@ async function sha256Hex(str){
   const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
+async function testConnection(){
+  const box=document.getElementById('conn-test-result');
+  if(!box)return;
+  box.innerHTML=`<p class="muted2" style="margin-top:10px;">${LANG==='en'?'Testing\u2026':LANG==='ru'?'Проверка\u2026':'Tekshirilmoqda\u2026'}</p>`;
+  const results=[];
+  try{
+    const t0=performance.now();
+    const res=await fetch(apiUrl('/api/stats'),{cache:'no-store'});
+    const ms=Math.round(performance.now()-t0);
+    if(res.ok){
+      const j=await res.json();
+      results.push({ok:true,label:`GET /api/stats \u2014 ${ms}ms`,detail:`starts:${j.starts} completions:${j.completions} dropouts:${j.dropouts}`});
+    }else{
+      results.push({ok:false,label:'GET /api/stats',detail:`HTTP ${res.status}`});
+    }
+  }catch(e){
+    results.push({ok:false,label:'GET /api/stats',detail:LANG==='en'?'Could not reach server at all (network/CORS/wrong URL)':'Serverga umuman ulanmadi'});
+  }
+  try{
+    const res=await fetch(apiUrl('/api/next-id'),{cache:'no-store'});
+    if(res.ok){
+      const j=await res.json();
+      results.push({ok:true,label:'GET /api/next-id',detail:`\u2192 ${j.id}`});
+    }else{
+      results.push({ok:false,label:'GET /api/next-id',detail:`HTTP ${res.status}`});
+    }
+  }catch(e){
+    results.push({ok:false,label:'GET /api/next-id',detail:LANG==='en'?'Could not reach server':'Ulanmadi'});
+  }
+  const allOk=results.every(r=>r.ok);
+  box.innerHTML=`<div style="margin-top:10px;padding:12px 14px;background:var(--card-hi);border:2px solid ${allOk?'var(--green)':'var(--red)'};border-radius:var(--rs);">
+    <p style="font-weight:700;margin-bottom:6px;">${allOk?'✅ '+(LANG==='en'?'Server is reachable and responding':LANG==='ru'?'Сервер доступен и отвечает':'Server ishlayapti va javob bermoqda'):'⚠️ '+(LANG==='en'?'Connection problem found':LANG==='ru'?'Обнаружена проблема со связью':'Ulanish muammosi topildi')}</p>
+    ${results.map(r=>`<p style="font-size:12px;color:var(--muted);margin-top:3px;">${r.ok?'✅':'❌'} ${r.label} \u2014 ${r.detail}</p>`).join('')}
+    <p style="font-size:12px;color:var(--muted2);margin-top:8px;">${LANG==='en'?'This only tests the connection \u2014 it does not test whether GitHub sync is working. Check your Render logs for that.':"Bu faqat ulanishni tekshiradi \u2014 GitHub sinxronizatsiyasini tekshirmaydi. Buning uchun Render loglariga qarang."}</p>
+  </div>`;
+}
+async function resetEverything(){
+  if(!ADMIN_ROWS||!ADMIN_ROWS.length){
+    if(!confirm(LANG==='en'?'No responses loaded to back up \u2014 reset anyway?':LANG==='ru'?'Нет данных для резервной копии \u2014 всё равно сбросить?':"Zaxira nusxa uchun ma'lumot yo'q \u2014 baribir tozalansinmi?"))return;
+  }else{
+    toast(LANG==='en'?'Downloading a backup first\u2026':LANG==='ru'?'Сначала скачиваем резервную копию\u2026':'Avval zaxira nusxa yuklanmoqda\u2026','var(--accent2)');
+    await dlZIP(ADMIN_ROWS);
+    await new Promise(r=>setTimeout(r,600));
+  }
+  const phrase='RESET';
+  const typed=prompt((LANG==='en'?`This permanently deletes ALL ${ADMIN_ROWS?.length||0} responses, on this device, the server, and GitHub \u2014 not just this browser. This cannot be undone.\n\nType ${phrase} to confirm:`:LANG==='ru'?`Это безвозвратно удалит ВСЕ ${ADMIN_ROWS?.length||0} ответов \u2014 на этом устройстве, сервере и GitHub. Отменить нельзя.\n\nВведите ${phrase} для подтверждения:`:`Bu ${ADMIN_ROWS?.length||0} ta javobni butunlay o'chiradi \u2014 bu qurilmada, serverda va GitHub'da. Bekor qilib bo'lmaydi.\n\nTasdiqlash uchun ${phrase} deb yozing:`));
+  if(typed!==phrase){toast(LANG==='en'?'Cancelled \u2014 nothing was deleted':LANG==='ru'?'Отменено \u2014 ничего не удалено':'Bekor qilindi \u2014 hech narsa o\u2018chirilmadi','var(--yellow)');return;}
+  const pw=prompt(LANG==='en'?'Confirm your admin password to proceed:':LANG==='ru'?'Подтвердите пароль администратора:':'Davom etish uchun admin parolni tasdiqlang:');
+  if(pw===null)return;
+  try{
+    const res=await fetch(apiUrl('/api/admin-reset'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+    const j=await res.json().catch(()=>({ok:false}));
+    if(!res.ok||!j.ok){
+      toast('⚠️ '+(LANG==='en'?'Reset failed \u2014 wrong password or server unreachable':LANG==='ru'?'Ошибка \u2014 неверный пароль или сервер недоступен':"Xatolik \u2014 parol noto'g'ri yoki serverga ulanmadi"),'var(--red)');
+      return;
+    }
+  }catch(e){
+    toast('⚠️ '+(LANG==='en'?'Could not reach the server \u2014 nothing was reset':'Serverga ulanmadi \u2014 hech narsa tozalanmadi'),'var(--red)');
+    return;
+  }
+  // Also clear this device's own local copies so the admin's browser doesn't show stale rows
+  // or stay locked out from re-testing the survey themselves.
+  try{
+    localStorage.removeItem('tadqiqot');
+    localStorage.removeItem('tadqiqot_done');
+    localStorage.removeItem('tadqiqot_draft');
+    localStorage.removeItem('tadqiqot_start_logged');
+    sessionStorage.removeItem('tadqiqot_start_logged');
+  }catch(e){}
+  toast('✅ '+(LANG==='en'?'Everything reset':LANG==='ru'?'Всё сброшено':'Hammasi tozalandi'),'var(--green)');
+  renderAdmin();
+}
 async function adminGo(){
   if(!ADMIN_UNLOCKED){
     const pw=prompt('Password:');
@@ -1990,8 +2069,14 @@ async function renderAdmin(){
       <button class="btn btn-ghost" onclick="dlZIP(ADMIN_ROWS)">📦 ${LANG==='en'?'Everything (ZIP)':LANG==='ru'?'Всё (ZIP)':'Hammasi (ZIP)'}</button>
       <button class="btn btn-ghost" onclick="document.getElementById('json-import').click()">📤 Import JSON</button>
       <button class="btn btn-ghost" onclick="renderAdmin()">↻ Refresh</button>
+      <button class="btn btn-ghost" onclick="testConnection()">🔌 ${LANG==='en'?'Test Connection':LANG==='ru'?'Проверить связь':'Ulanishni tekshirish'}</button>
       <button class="btn btn-ghost" onclick="S.step=0;render()">← Back</button>
       <input id="json-import" type="file" accept=".json,application/json" style="display:none" onchange="importJSON(this.files[0]);this.value='';">
+    </div>
+    <div id="conn-test-result"></div>
+    <div style="margin-top:14px;padding-top:14px;border-top:2px dashed rgba(244,66,94,.4);">
+      <button class="btn" style="background:var(--red);border-color:var(--red);color:#fff;box-shadow:4px 4px 0 rgba(0,0,0,.55);" onclick="resetEverything()">☠️ ${LANG==='en'?'Reset Everything (wipe all data)':LANG==='ru'?'Сбросить всё (удалить все данные)':'Hammasini tozalash (barcha ma\u2018lumotlarni o\u2018chirish)'}</button>
+      <p class="muted2" style="margin-top:6px;">${LANG==='en'?'Permanently deletes every response, resets participant IDs to 1, and clears funnel stats \u2014 on this device, the server, and GitHub. Cannot be undone.':LANG==='ru'?'Безвозвратно удаляет все ответы, сбрасывает ID участников до 1 и очищает статистику воронки \u2014 на этом устройстве, сервере и GitHub. Отменить нельзя.':"Barcha javoblarni butunlay o'chiradi, ishtirokchi ID'larini 1 dan boshlaydi va statistikani tozalaydi \u2014 bu qurilmada, serverda va GitHub'da. Bekor qilib bo'lmaydi."}</p>
     </div>
     <input type="text" class="admin-search" id="admin-search" placeholder="${LANG==='en'?'Search by participant ID, age, sex…':'Qidirish: ID, yosh, jinsi…'}" oninput="filterAdmin(this.value)">
     <div class="admin-note">
