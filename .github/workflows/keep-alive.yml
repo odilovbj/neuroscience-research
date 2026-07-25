@@ -1,18 +1,24 @@
 name: Keep Server Awake
 
-# Pings the live site every 10 minutes so Render's free tier never sees
-# 15 minutes of inactivity and spins the server down. This trades a small
-# amount of constant background traffic for eliminating the ~30-60 second
-# cold-start delay that real participants were hitting.
+# Pings the live site every 13 minutes, but ONLY during 9am-10pm Tashkent
+# time (UTC+5) — i.e. 4:00-16:59 UTC. This is a deliberate tradeoff:
 #
-# Note: GitHub's scheduled workflows are not perfectly punctual — they can
-# run a few minutes late during periods of high GitHub-wide load. This
-# makes a spin-down very unlikely but not mathematically impossible in
-# rare edge cases. If you ever notice the delay coming back occasionally,
-# that's why — it's not a sign anything is broken.
+# Pinging 24/7 often enough to reliably beat Render's 15-minute spin-down
+# window uses more minutes per month than GitHub Actions' free tier allows
+# on a private repo (2,000 min/month) — the math genuinely doesn't fit at
+# any interval under ~22 minutes, and 22 minutes is too slow to prevent
+# spin-down at all. So instead this keeps the server warm during the hours
+# real participants are actually likely to be taking the survey, and
+# accepts the ~30-60 second cold-start delay outside that window as a
+# reasonable tradeoff for staying within the free tier.
+#
+# If participants are consistently active outside 9am-10pm local time,
+# adjust the hour range below (remember: GitHub Actions cron is always UTC).
+# The permanent fix that removes this tradeoff entirely is upgrading Render
+# to a paid instance type (~$7/month), which removes spin-down altogether.
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/13 4-16 * * *'
   workflow_dispatch: {}
 
 jobs:
@@ -24,8 +30,3 @@ jobs:
           URL="https://neuroscienceresearch.onrender.com/"
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
           echo "Pinged $URL -> HTTP $HTTP_CODE"
-          # Deliberately not failing the workflow on a bad response here —
-          # this job's only purpose is to generate traffic to keep the
-          # instance warm. The separate "Survey Server Health Check"
-          # workflow is the one that actually alerts you if something's
-          # genuinely wrong.
