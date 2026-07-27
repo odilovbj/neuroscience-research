@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="survey-api" content="https://neuroscienceresearch.onrender.com">
 <title>Migraine, Sleep & Memory — Scientific Study</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,7 +40,7 @@ html[data-theme="light"]{
 html,body{transition:background-color .3s,color .3s;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;overflow-anchor:none;}
 html{scroll-behavior:smooth;overflow-anchor:none;}
-body{font-family:var(--font-body);color:var(--text);background:var(--bg);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;text-shadow:var(--edge-shadow);overflow-anchor:none;}
+body{font-family:var(--font-body);color:var(--text);background:var(--bg);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;text-shadow:var(--edge-shadow);overflow-anchor:none;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 
 /* ── BG: flat, graphic, no blur/glow ── */
 .bg{position:fixed;inset:0;z-index:0;overflow:hidden;background:
@@ -70,7 +69,7 @@ body{font-family:var(--font-body);color:var(--text);background:var(--bg);min-hei
 .svg-defs{position:absolute;width:0;height:0;pointer-events:none;}
 
 /* ── LAYOUT ── */
-#app{position:relative;z-index:10;max-width:640px;margin:0 auto;padding:58px 14px 90px;overflow-anchor:none;}
+#app{position:relative;z-index:10;width:100%;max-width:640px;margin:0 auto;padding:58px 14px 90px;overflow-anchor:none;}
 
 /* ── PROGRESS ── */
 .pbar-shell{position:fixed;top:0;left:0;right:0;z-index:300;height:4px;background:var(--card);}
@@ -621,12 +620,8 @@ const FE=['😌','🙂','😐','😴'];
 
 // ═══ STORAGE (server + local backup) ════════════════════════════════════
 const API_BASE=(()=>{
-  try{
-    const custom=localStorage.getItem('tadqiqot_api_url')?.trim();
-    if(custom)return custom.replace(/\/$/,'');
-  }catch(e){}
   const meta=document.querySelector('meta[name="survey-api"]')?.content?.trim();
-  if(meta&&location.hostname!=='localhost'&&!location.hostname.includes('127.0.0.1'))return meta.replace(/\/$/,'');
+  if(meta)return meta.replace(/\/$/,'');
   return location.protocol==='file:'?'http://localhost:8787':'';
 })();
 let STORE_STATUS={api:false,apiCount:0,artifact:false,localCount:0};
@@ -1138,6 +1133,35 @@ function s2(){
       <div class="qs first"><span class="qs-icon">📊</span>${t('mfreq_q')}</div>
       ${optGroup('mfreq',mfItems,true)}
     </div>
+    <div class="qs-block" style="margin-top:22px;">
+      <div class="qs"><span class="qs-icon">🗓️</span>${LANG==='en'?'When was your most recent headache?':LANG==='ru'?'Когда была ваша последняя головная боль?':"Eng so'nggi bosh og'rig'ingiz qachon bo'lgan?"}</div>
+      ${optGroup('mrecency',[
+        {v:'today',l:LANG==='en'?'Today':LANG==='ru'?'Сегодня':'Bugun',e:'🔴'},
+        {v:'1to2',l:LANG==='en'?'1\u20132 days ago':LANG==='ru'?'1\u20132 дня назад':'1\u20132 kun oldin',e:'🟠'},
+        {v:'3to7',l:LANG==='en'?'3\u20137 days ago':LANG==='ru'?'3\u20137 дней назад':'3\u20137 kun oldin',e:'🟡'},
+        {v:'gt7',l:LANG==='en'?'More than a week ago':LANG==='ru'?'Более недели назад':"Bir haftadan ko'proq oldin",e:'🟢'},
+        {v:'never',l:LANG==='en'?"I don't really get headaches":LANG==='ru'?'У меня редко бывают головные боли':"Menda kamdan-kam bosh og'rig'i bo'ladi",e:'⚪'}
+      ],true)}
+    </div>
+    <hr>
+    <div class="qs-block" style="margin-top:22px;">
+      <div class="qs first"><span class="qs-icon">💭</span>${LANG==='en'?'Last two weeks \u2014 how often have you been bothered by:':LANG==='ru'?'За последние 2 недели, как часто вас беспокоило:':"So'nggi 2 hafta ichida sizni quyidagilar qanchalik bezovta qildi:"}</div>
+    </div>
+    ${[
+      {key:'anx1', uz:"Asabiylashish, xavotirlanish yoki taranglik hissi", ru:'Чувство нервозности, тревоги или напряжённости', en:'Feeling nervous, anxious, or on edge', e:'😬'},
+      {key:'anx2', uz:"Xavotirni to'xtata olmaslik yoki nazorat qila olmaslik", ru:'Невозможность остановить или контролировать беспокойство', en:'Not being able to stop or control worrying', e:'🌀'},
+      {key:'anx3', uz:"Bo'shashib, tinchlana olmaslik", ru:'Трудность расслабиться', en:'Trouble relaxing', e:'😣'},
+      {key:'anx4', uz:"Nimadir yomon bo'lib qolishidan qo'rqish", ru:'Страх, что может произойти что-то плохое', en:'Feeling afraid as if something awful might happen', e:'😨'}
+    ].map((item,i)=>`
+    <div class="qs-block" style="margin-top:${i===0?14:22}px;">
+      <div class="qs" style="font-size:13.5px;">${LANG==='en'?item.en:LANG==='ru'?item.ru:item.uz}</div>
+      ${optGroup(item.key,[
+        {v:'0',l:LANG==='en'?'Not at all':LANG==='ru'?'Совсем нет':'Umuman yo\u2018q',e:'😌'},
+        {v:'1',l:LANG==='en'?'Several days':LANG==='ru'?'Несколько дней':'Bir necha kun',e:'🙂'},
+        {v:'2',l:LANG==='en'?'More than half the days':LANG==='ru'?'Больше половины дней':"Ko'p kunlarda",e:'😟'},
+        {v:'3',l:LANG==='en'?'Nearly every day':LANG==='ru'?'Почти каждый день':'Deyarli har kuni',e:'😣'}
+      ],true)}
+    </div>`).join('')}
   </div></div>
   <div class="brow">
     <button class="btn btn-ghost" onclick="S.step=1;render()">${t('back')}</button>
@@ -1148,7 +1172,14 @@ function subMig(){
   let yes=0;
   for(let i=0;i<3;i++){const v=getVal('mq'+i);if(!v){toast('⚠️ '+(i+1)+'. '+t('sel'),`var(--yellow)`);return;}S.migraine['q'+i]=v;if(v==='ha')yes++;}
   const freq=getVal('mfreq');if(!freq){toast('⚠️ '+t('sel'),`var(--yellow)`);return;}
+  const recency=getVal('mrecency');if(!recency){toast('⚠️ '+t('sel'),`var(--yellow)`);return;}
+  const anxKeys=['anx1','anx2','anx3','anx4'];
+  const anxVals=[];
+  for(const k of anxKeys){const v=getVal(k);if(v===null){toast('⚠️ '+t('sel'),`var(--yellow)`);return;}anxVals.push(parseInt(v));}
   S.migraine.freq=freq;S.migraine.score=yes;S.migraine.likely=yes>=2;
+  S.migraine.recency=recency;
+  S.migraine.anx1=anxVals[0];S.migraine.anx2=anxVals[1];S.migraine.anx3=anxVals[2];S.migraine.anx4=anxVals[3];
+  S.migraine.anxietyTotal=anxVals.reduce((a,b)=>a+b,0);
   S.step=3;render();
 }
 
@@ -2332,6 +2363,9 @@ function flattenRow(r){
     ctx_sleep_last_night:r.demo?.ctx_sleep,ctx_caffeine_today:r.demo?.ctx_caffeine,ctx_regular_medication:r.demo?.ctx_meds,
     mig_q1:r.migraine?.q0,mig_q2:r.migraine?.q1,mig_q3:r.migraine?.q2,
     mig_score:r.migraine?.score,mig_likely:r.migraine?.likely,mig_freq:r.migraine?.freq,
+    mig_days_since_last_attack:r.migraine?.recency,
+    anxiety_item1:r.migraine?.anx1,anxiety_item2:r.migraine?.anx2,anxiety_item3:r.migraine?.anx3,anxiety_item4:r.migraine?.anx4,
+    anxiety_total:r.migraine?.anxietyTotal,
     psqi_q1_bedtime:r.psqi?.q1,psqi_q2_latency:r.psqi?.q2,psqi_q3_waketime:r.psqi?.q3,psqi_q4_duration:r.psqi?.q4,
     psqi_5a:r.psqi?.['5a'],psqi_5b:r.psqi?.['5b'],psqi_5c:r.psqi?.['5c'],psqi_5d:r.psqi?.['5d'],
     psqi_5e:r.psqi?.['5e'],psqi_5f:r.psqi?.['5f'],psqi_5g:r.psqi?.['5g'],psqi_5h:r.psqi?.['5h'],psqi_5i:r.psqi?.['5i'],
@@ -2374,6 +2408,9 @@ const CODEBOOK=[
   {Variable:'mig_score',Description:'Count of "yes" answers across mig_q1\u2013q3',Range:'0\u20133'},
   {Variable:'mig_likely',Description:'TRUE if mig_score \u2265 2 (ID-Migraine\u2019s standard cutoff for a probable migraine diagnosis)',Range:'TRUE / FALSE'},
   {Variable:'mig_freq',Description:'Self-reported headache frequency category',Range:'categorical'},
+  {Variable:'mig_days_since_last_attack',Description:'Graded interictal status \u2014 time since the participant\u2019s most recent headache. Use this instead of (or alongside) a binary headache_today split for a more precise interictal/postdromal classification, since cognitive effects can linger for days after an attack',Range:"today / 1to2 / 3to7 / gt7 / never"},
+  {Variable:'anxiety_item1..item4',Description:'Four-item brief anxiety screener (adapted from GAD-7 core items, NOT the validated 7-item instrument \u2014 do not apply standard GAD-7 clinical cutoffs to this abbreviated score), asking frequency over the past 2 weeks: nervous/on-edge, uncontrollable worry, trouble relaxing, fear something awful will happen',Range:'0=not at all \u2013 3=nearly every day, per item'},
+  {Variable:'anxiety_total',Description:'Sum of the 4 anxiety items. Included as a covariate/control variable for the mediation model, since anxiety is independently associated with both migraine and sleep disruption \u2014 not a diagnostic score, do not use published GAD-7 severity cutoffs with this total since it is a 4-item subset, not the full instrument',Range:'0\u201312'},
   {Variable:'psqi_q1_bedtime',Description:'Usual bedtime (24h, HH:MM)',Range:'time'},
   {Variable:'psqi_q2_latency',Description:'PSQI component 2 input: minutes to fall asleep',Range:'0\u20133 coded band'},
   {Variable:'psqi_q3_waketime',Description:'Usual wake time (24h, HH:MM)',Range:'time'},
