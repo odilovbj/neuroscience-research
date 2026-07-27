@@ -105,135 +105,61 @@ async function githubPutFile(relPath, content) {
   }
 }
 
+async function restoreFromGitHubIfMissing(localFile, relPath) {
+  if (!GH_ENABLED) return;
+  try {
+    if (fs.existsSync(localFile)) return;
+    const remote = await githubGetFile(relPath);
+    if (remote !== null) {
+      fs.writeFileSync(localFile, remote);
+      console.log(`Restored ${relPath} from GitHub (${remote.length} bytes)`);
+    }
+  } catch (err) {
+    console.error(`Restore ${relPath} from GitHub failed:`, err.message);
+  }
+}
+
 async function restoreAllFromGitHub() {
   if (!GH_ENABLED) {
     console.log("GitHub sync: DISABLED (set GITHUB_TOKEN + GITHUB_REPO env vars to enable). Data will NOT survive a restart on a host without a persistent disk.");
     return;
   }
-  console.log(`GitHub sync: configured -> ${GH_REPO}@${GH_BRANCH} (fetching & merging remote data...)`);
-  
-  // 1. Survey responses: merge local and GitHub remote
-  try {
-    const remoteStr = await githubGetFile("survey-responses.json");
-    let remoteRows = [];
-    if (remoteStr !== null) {
-      try {
-        const p = JSON.parse(remoteStr);
-        if (Array.isArray(p)) remoteRows = p;
-      } catch (e) {}
-    }
-    const localRows = readRows();
-    const rowMap = new Map();
-    const rKey = r => String(r.pid || r.participant_id || (r.date + Math.random()));
-    localRows.forEach(r => rowMap.set(rKey(r), r));
-    remoteRows.forEach(r => {
-      const k = rKey(r);
-      if (!rowMap.has(k)) {
-        rowMap.set(k, r);
-      } else {
-        const existing = rowMap.get(k);
-        if (Object.keys(r).length > Object.keys(existing).length) {
-          rowMap.set(k, r);
-        }
-      }
-    });
-    const merged = Array.from(rowMap.values());
-    merged.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-    
-    const content = JSON.stringify(merged, null, 2);
-    const tmp = DATA_FILE + ".tmp";
-    fs.writeFileSync(tmp, content);
-    fs.renameSync(tmp, DATA_FILE);
-    console.log(`Synced survey-responses.json (${merged.length} total responses)`);
-    
-    if (merged.length > remoteRows.length) {
-      await githubPutFile("survey-responses.json", content);
-    }
-  } catch (err) {
-    console.error("Sync survey-responses.json failed:", err.message);
-  }
-
-  // 2. Participant counter: derive strictly from completed response data
-  try {
-    await githubGetFile("participant-counter.json");
-    const nextNum = parseInt(getNextParticipantId().replace(/\D/g, ""), 10) || (readRows().length + 1);
-    const cContent = JSON.stringify({ next: nextNum }, null, 2);
-    fs.writeFileSync(COUNTER_FILE, cContent);
-    githubPutFile("participant-counter.json", cContent).catch(() => {});
-  } catch (err) {
-    console.error("Sync participant-counter.json failed:", err.message);
-  }
-
-  // 3. Survey starts
-  try {
-    const remoteStr = await githubGetFile("survey-starts.json");
-    let remoteStarts = [];
-    if (remoteStr !== null) {
-      try {
-        const p = JSON.parse(remoteStr);
-        if (Array.isArray(p)) remoteStarts = p;
-      } catch (e) {}
-    }
-    const localStarts = readStarts();
-    const startsMap = new Map();
-    localStarts.forEach(s => startsMap.set(s.date, s));
-    remoteStarts.forEach(s => startsMap.set(s.date, s));
-    const mergedStarts = Array.from(startsMap.values());
-    const sContent = JSON.stringify(mergedStarts, null, 2);
-    fs.writeFileSync(STARTS_FILE, sContent);
-  } catch (err) {
-    console.error("Sync survey-starts.json failed:", err.message);
-  }
-
-  // 4. Survey dropouts
-  try {
-    const remoteStr = await githubGetFile("survey-dropouts.json");
-    let remoteDropouts = [];
-    if (remoteStr !== null) {
-      try {
-        const p = JSON.parse(remoteStr);
-        if (Array.isArray(p)) remoteDropouts = p;
-      } catch (e) {}
-    }
-    const localDropouts = readDropouts();
-    const dropoutsMap = new Map();
-    localDropouts.forEach(d => dropoutsMap.set(d.date + "_" + d.step, d));
-    remoteDropouts.forEach(d => dropoutsMap.set(d.date + "_" + d.step, d));
-    const mergedDropouts = Array.from(dropoutsMap.values());
-    const dContent = JSON.stringify(mergedDropouts, null, 2);
-    fs.writeFileSync(DROPOUTS_FILE, dContent);
-  } catch (err) {
-    console.error("Sync survey-dropouts.json failed:", err.message);
-  }
-
-  // 5. Sample target
-  try {
-    const remoteStr = await githubGetFile("sample-target.json");
-    if (remoteStr !== null) {
-      try {
-        const t = Number(JSON.parse(remoteStr).target);
-        if (t > 0) fs.writeFileSync(TARGET_FILE, JSON.stringify({ target: t }, null, 2));
-      } catch (e) {}
-    }
-  } catch (err) {
-    console.error("Sync sample-target.json failed:", err.message);
-  }
+  console.log(`GitHub sync: configured -> ${GH_REPO}@${GH_BRANCH} (verifying write access next...)`);
+  await restoreFromGitHubIfMissing(DATA_FILE, "survey-responses.json");
+  await restoreFromGitHubIfMissing(COUNTER_FILE, "participant-counter.json");
+  await restoreFromGitHubIfMissing(STARTS_FILE, "survey-starts.json");
+  await restoreFromGitHubIfMissing(DROPOUTS_FILE, "survey-dropouts.json");
+  await restoreFromGitHubIfMissing(TARGET_FILE, "sample-target.json");
 }
 
 async function verifyGithubWriteAccess() {
   if (!GH_ENABLED) { GH_WRITE_VERIFIED = false; return; }
-  const canaryPath = "_sync_check.json";
-  const stamp = JSON.stringify({ checkedAt: new Date().toISOString() });
-  const result = await githubPutFile(canaryPath, stamp);
-  if (result.ok) {
-    GH_WRITE_VERIFIED = true;
-    console.log("GitHub sync: \u2705 WRITE ACCESS VERIFIED \u2014 your token can actually save data. You're good.");
-  } else {
+  // Read-only check: ask GitHub what permissions this token actually has on the
+  // repo, via a plain GET. This used to write a small test file to confirm write
+  // access — but that created a real commit on every single boot, which Render
+  // treats as a new push and tries to redeploy, burning pipeline minutes in a
+  // loop. A GET request creates no commit and can never trigger a deploy.
+  try {
+    const url = `https://api.github.com/repos/${GH_REPO}`;
+    const res = await fetch(url, { headers: ghHeaders() });
+    if (!res.ok) {
+      GH_WRITE_VERIFIED = false;
+      console.log(`GitHub sync: \u274c CANNOT REACH REPO \u2014 HTTP ${res.status}. Check GITHUB_REPO is spelled correctly and the token has access to it.`);
+      return;
+    }
+    const info = await res.json();
+    const canPush = !!(info.permissions && info.permissions.push);
+    GH_WRITE_VERIFIED = canPush;
+    if (canPush) {
+      console.log("GitHub sync: \u2705 WRITE ACCESS VERIFIED (read-only check, no commit made) \u2014 your token can actually save data. You're good.");
+    } else {
+      console.log("GitHub sync: \u274c WRITE ACCESS FAILED \u2014 token can read this repo but does not have push/write permission.");
+      console.log("  Fix: use a classic token (Settings > Developer settings > Tokens (classic)) with the 'repo' scope,");
+      console.log("  or check that your fine-grained token has Contents: Read and write on this exact repo.");
+    }
+  } catch (err) {
     GH_WRITE_VERIFIED = false;
-    console.log("GitHub sync: \u274c WRITE ACCESS FAILED \u2014 the token is set but cannot write to this repo.");
-    console.log(`  Reason: ${result.reason || "unknown"} ${result.detail ? "- " + result.detail : ""}`);
-    console.log("  Fix: use a classic token (Settings > Developer settings > Tokens (classic)) with the 'repo' scope,");
-    console.log("  or check that your fine-grained token has Contents: Read and write on this exact repo.");
+    console.log("GitHub sync: \u274c COULD NOT VERIFY \u2014 network error:", err.message);
   }
 }
 
@@ -278,45 +204,14 @@ function writeRows(rows) {
   githubPutFile("survey-responses.json", content).catch(() => {});
 }
 
-function getNextParticipantId() {
-  const rows = readRows();
-  let maxNum = 0;
-  for (const r of rows) {
-    const pid = String(r.pid || r.participant_id || "");
-    const match = pid.match(/^participant(\d+)$/i);
-    if (match) {
-      const num = parseInt(match[1], 10);
-      if (num > maxNum) maxNum = num;
-    }
-  }
-  const nextNum = Math.max(maxNum + 1, rows.length + 1);
-  return "participant" + nextNum;
-}
-
-function updateCounterAfterSave(pid) {
-  const match = String(pid || "").match(/^participant(\d+)$/i);
-  if (match) {
-    const num = parseInt(match[1], 10);
-    const nextVal = num + 1;
-    const content = JSON.stringify({ next: nextVal }, null, 2);
-    try {
-      fs.writeFileSync(COUNTER_FILE, content);
-    } catch (err) {
-      console.error("Could not persist participant counter:", err.message);
-    }
-    githubPutFile("participant-counter.json", content).catch(() => {});
-  }
-}
-
 function upsertRow(row) {
   const rows = readRows();
-  const pid = String(row.pid || row.participant_id || getNextParticipantId());
+  const pid = String(row.pid || row.participant_id || `p${Date.now()}${Math.random().toString(36).slice(2, 8)}`);
   const normalized = { ...row, pid };
   const index = rows.findIndex(item => String(item.pid || item.participant_id) === pid);
   if (index >= 0) rows[index] = normalized;
   else rows.push(normalized);
   writeRows(rows);
-  updateCounterAfterSave(pid);
   return { row: normalized, count: rows.length };
 }
 
@@ -330,6 +225,28 @@ function deleteRow(identity) {
   const removed = rows.length - next.length;
   if (removed > 0) writeRows(next);
   return removed;
+}
+
+function nextParticipantId() {
+  let n = 1;
+  try {
+    if (fs.existsSync(COUNTER_FILE)) {
+      const c = JSON.parse(fs.readFileSync(COUNTER_FILE, "utf8"));
+      n = Number(c.next) || 1;
+    } else {
+      n = readRows().length + 1;
+    }
+  } catch (err) {
+    n = readRows().length + 1;
+  }
+  const content = JSON.stringify({ next: n + 1 }, null, 2);
+  try {
+    fs.writeFileSync(COUNTER_FILE, content);
+  } catch (err) {
+    console.error("Could not persist participant counter:", err.message);
+  }
+  githubPutFile("participant-counter.json", content).catch(() => {});
+  return "participant" + n;
 }
 
 // ── FUNNEL TRACKING (starts / dropouts) ──────────────────────────────────────
@@ -506,7 +423,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === "/api/next-id" && req.method === "GET") {
-    return send(res, 200, JSON.stringify({ id: getNextParticipantId() }), { "Content-Type": "application/json; charset=utf-8" });
+    return send(res, 200, JSON.stringify({ id: nextParticipantId() }), { "Content-Type": "application/json; charset=utf-8" });
   }
 
   if (url.pathname === "/api/admin-auth" && req.method === "POST") {
