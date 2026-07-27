@@ -1,0 +1,15 @@
+[build]
+  publish = "."
+
+# Serve full.html as the primary landing page
+[[redirects]]
+  from = "/"
+  to = "/full.html"
+  status = 200
+
+# Route backend survey API requests to the Render backend collector
+[[redirects]]
+  from = "/api/*"
+  to = "https://neuroscienceresearch.onrender.com/api/:splat"
+  status = 200
+  force = true
