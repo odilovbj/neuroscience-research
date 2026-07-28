@@ -206,7 +206,7 @@ function writeRows(rows) {
 
 function upsertRow(row) {
   const rows = readRows();
-  const pid = String(row.pid || row.participant_id || `p${Date.now()}${Math.random().toString(36).slice(2, 8)}`);
+  const pid = String(row.pid || row.participant_id || consumeNextParticipantId());
   const normalized = { ...row, pid };
   const index = rows.findIndex(item => String(item.pid || item.participant_id) === pid);
   if (index >= 0) rows[index] = normalized;
@@ -227,18 +227,23 @@ function deleteRow(identity) {
   return removed;
 }
 
-function nextParticipantId() {
-  let n = 1;
+function peekNextParticipantId() {
+  // Read-only \u2014 tells you what the next ID WOULD be, without reserving or persisting anything.
+  // Safe to call as often as you like (Test Connection, admin refresh, etc.) with zero side effects.
   try {
     if (fs.existsSync(COUNTER_FILE)) {
       const c = JSON.parse(fs.readFileSync(COUNTER_FILE, "utf8"));
-      n = Number(c.next) || 1;
-    } else {
-      n = readRows().length + 1;
+      return Number(c.next) || 1;
     }
-  } catch (err) {
-    n = readRows().length + 1;
-  }
+  } catch (err) { /* fall through */ }
+  return readRows().length + 1;
+}
+
+function consumeNextParticipantId() {
+  // Actually reserves an ID by incrementing the persisted counter. Only ever call this at the
+  // moment a real response is being saved (inside upsertRow/POST /api/responses) \u2014 never from
+  // a diagnostic or read-only check, or the counter jumps every time someone just looks at it.
+  const n = peekNextParticipantId();
   const content = JSON.stringify({ next: n + 1 }, null, 2);
   try {
     fs.writeFileSync(COUNTER_FILE, content);
@@ -423,7 +428,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === "/api/next-id" && req.method === "GET") {
-    return send(res, 200, JSON.stringify({ id: nextParticipantId() }), { "Content-Type": "application/json; charset=utf-8" });
+    return send(res, 200, JSON.stringify({ id: "participant" + peekNextParticipantId() }), { "Content-Type": "application/json; charset=utf-8" });
   }
 
   if (url.pathname === "/api/admin-auth" && req.method === "POST") {
