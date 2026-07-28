@@ -648,6 +648,7 @@ function saveLocalRow(row){
 }
 async function saveData(d){
   let shared=false;
+  let assignedPid=d.pid||null;
   try{
     const res=await fetch(apiUrl('/api/responses'),{
       method:'POST',
@@ -655,14 +656,25 @@ async function saveData(d){
       body:JSON.stringify(d)
     });
     shared=res.ok;
+    if(res.ok){
+      try{const j=await res.json();if(j&&j.pid)assignedPid=j.pid;}catch(e){}
+    }
   }catch(e){console.warn('server save failed:',e);}
+  if(!assignedPid){
+    // Server unreachable and no id assigned yet \u2014 offline fallback, device-local only.
+    try{
+      const ex=JSON.parse(localStorage.getItem('tadqiqot')||'{}');
+      assignedPid='participant'+(Object.keys(ex).length+1);
+    }catch(e){assignedPid='participant'+Date.now();}
+  }
+  d.pid=assignedPid;
   try{
     if(!shared&&typeof window.storage!=='undefined'&&window.storage){
       await window.storage.set(rowKey(d),JSON.stringify(d),true);
       shared=true;
     }
   }catch(e){console.warn('shared storage set failed:',e);}
-  return{shared,local:saveLocalRow(d)};
+  return{shared,local:saveLocalRow(d),pid:assignedPid};
 }
 async function loadAll(){
   const rows=[];const seen=new Set();
@@ -1141,6 +1153,15 @@ function s2(){
         {v:'3to7',l:LANG==='en'?'3\u20137 days ago':LANG==='ru'?'3\u20137 дней назад':'3\u20137 kun oldin',e:'🟡'},
         {v:'gt7',l:LANG==='en'?'More than a week ago':LANG==='ru'?'Более недели назад':"Bir haftadan ko'proq oldin",e:'🟢'},
         {v:'never',l:LANG==='en'?"I don't really get headaches":LANG==='ru'?'У меня редко бывают головные боли':"Menda kamdan-kam bosh og'rig'i bo'ladi",e:'⚪'}
+      ],true)}
+    </div>
+    <div class="qs-block" style="margin-top:22px;">
+      <div class="qs"><span class="qs-icon">✨</span>${LANG==='en'?'Before a headache starts, do you ever see flashing lights, zigzag lines, or blind spots?':LANG==='ru'?'Перед началом головной боли видите ли вы мерцающие огни, зигзагообразные линии или слепые пятна?':"Bosh og'rig'i boshlanishidan oldin miltillovchi yorug'lik, zigzag chiziqlar yoki ko'r nuqtalarni ko'rasizmi?"}</div>
+      ${optGroup('maura',[
+        {v:'yes',l:LANG==='en'?'Yes, often':LANG==='ru'?'Да, часто':'Ha, tez-tez',e:'✨'},
+        {v:'sometimes',l:LANG==='en'?'Yes, sometimes':LANG==='ru'?'Да, иногда':'Ha, ba\u2018zan',e:'🌤️'},
+        {v:'no',l:LANG==='en'?'No, never':LANG==='ru'?'Нет, никогда':"Yo'q, hech qachon",e:'🚫'},
+        {v:'unsure',l:LANG==='en'?"Not sure":LANG==='ru'?'Не уверен(а)':'Aniq bilmayman',e:'🤔'}
       ],true)}
     </div>
     <hr>
@@ -1631,22 +1652,7 @@ function nbStats(trials){
   return{dprime,bias,acc,hitAcc,hits,misses,fa,cr,meanRT,medRT,nT,nNT,anticipatory};
 }
 
-async function assignParticipantId(){
-  // Ask the shared collector for the next clean sequential id ("participant1", "participant2"...).
-  try{
-    const res=await fetch(apiUrl('/api/next-id'),{cache:'no-store'});
-    if(res.ok){
-      const j=await res.json();
-      if(j&&j.id)return j.id;
-    }
-  }catch(e){}
-  // Offline fallback: derive a sequential-looking id from this device's local backup count.
-  try{
-    const ex=JSON.parse(localStorage.getItem('tadqiqot')||'{}');
-    return 'participant'+(Object.keys(ex).length+1);
-  }catch(e){}
-  return 'participant'+Date.now();
-}
+
 function getSessionMeta(){
   let device='desktop';
   const ua=navigator.userAgent||'';
@@ -1728,13 +1734,11 @@ async function finishNback(fatigue){
     fatigue:fatigue??null // 1\u20135 self-reported task difficulty/fatigue
   };
   qc.excludeRecommended=qc.fast||qc.anticipatory||qc.straightLine||qc.timeInconsistent||!qc.attnPass;
-  if(!PREVIEW_MODE){
-    S.pid=await assignParticipantId();
-  }else{
+  if(PREVIEW_MODE){
     S.pid='PREVIEW-'+Math.random().toString(36).slice(2,7);
   }
   const payload={
-    pid:S.pid,date:new Date().toISOString(),lang:LANG,dur:durSec,
+    pid:PREVIEW_MODE?S.pid:null,date:new Date().toISOString(),lang:LANG,dur:durSec,
     localHour:new Date().getHours(),
     appVersion:SURVEY_VERSION,
     preview:PREVIEW_MODE,
@@ -1751,6 +1755,7 @@ async function finishNback(fatigue){
     return;
   }
   const saved=await saveData(payload);
+  S.pid=saved.pid;
   S.saveStatus=saved.shared?'server':'local-only';
   if(!saved.shared){
     toast('⚠️ '+(LANG==='en'?'Saved only on this device - start the collector server for shared data':LANG==='ru'?'Сохранено только на этом устройстве':'Faqat shu qurilmada saqlandi'),'var(--yellow)');
