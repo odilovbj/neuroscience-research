@@ -1194,11 +1194,13 @@ function subMig(){
   for(let i=0;i<3;i++){const v=getVal('mq'+i);if(!v){toast('⚠️ '+(i+1)+'. '+t('sel'),`var(--yellow)`);return;}S.migraine['q'+i]=v;if(v==='ha')yes++;}
   const freq=getVal('mfreq');if(!freq){toast('⚠️ '+t('sel'),`var(--yellow)`);return;}
   const recency=getVal('mrecency');if(!recency){toast('⚠️ '+t('sel'),`var(--yellow)`);return;}
+  const aura=getVal('maura');if(!aura){toast('⚠️ '+t('sel'),`var(--yellow)`);return;}
   const anxKeys=['anx1','anx2','anx3','anx4'];
   const anxVals=[];
   for(const k of anxKeys){const v=getVal(k);if(v===null){toast('⚠️ '+t('sel'),`var(--yellow)`);return;}anxVals.push(parseInt(v));}
   S.migraine.freq=freq;S.migraine.score=yes;S.migraine.likely=yes>=2;
   S.migraine.recency=recency;
+  S.migraine.aura=aura;
   S.migraine.anx1=anxVals[0];S.migraine.anx2=anxVals[1];S.migraine.anx3=anxVals[2];S.migraine.anx4=anxVals[3];
   S.migraine.anxietyTotal=anxVals.reduce((a,b)=>a+b,0);
   S.step=3;render();
@@ -2369,6 +2371,7 @@ function flattenRow(r){
     mig_q1:r.migraine?.q0,mig_q2:r.migraine?.q1,mig_q3:r.migraine?.q2,
     mig_score:r.migraine?.score,mig_likely:r.migraine?.likely,mig_freq:r.migraine?.freq,
     mig_days_since_last_attack:r.migraine?.recency,
+    mig_aura_symptoms:r.migraine?.aura,
     anxiety_item1:r.migraine?.anx1,anxiety_item2:r.migraine?.anx2,anxiety_item3:r.migraine?.anx3,anxiety_item4:r.migraine?.anx4,
     anxiety_total:r.migraine?.anxietyTotal,
     psqi_q1_bedtime:r.psqi?.q1,psqi_q2_latency:r.psqi?.q2,psqi_q3_waketime:r.psqi?.q3,psqi_q4_duration:r.psqi?.q4,
@@ -2414,6 +2417,7 @@ const CODEBOOK=[
   {Variable:'mig_likely',Description:'TRUE if mig_score \u2265 2 (ID-Migraine\u2019s standard cutoff for a probable migraine diagnosis)',Range:'TRUE / FALSE'},
   {Variable:'mig_freq',Description:'Self-reported headache frequency category',Range:'categorical'},
   {Variable:'mig_days_since_last_attack',Description:'Graded interictal status \u2014 time since the participant\u2019s most recent headache. Use this instead of (or alongside) a binary headache_today split for a more precise interictal/postdromal classification, since cognitive effects can linger for days after an attack',Range:"today / 1to2 / 3to7 / gt7 / never"},
+  {Variable:'mig_aura_symptoms',Description:'Self-reported migraine aura symptoms (flashing lights, zigzag lines, blind spots before headache onset). Migraine-with-aura and migraine-without-aura are associated with different cognitive profiles in some literature \u2014 use to check for subgroup effects rather than treating all probable-migraine participants as one homogeneous group',Range:'yes / sometimes / no / unsure'},
   {Variable:'anxiety_item1..item4',Description:'Four-item brief anxiety screener (adapted from GAD-7 core items, NOT the validated 7-item instrument \u2014 do not apply standard GAD-7 clinical cutoffs to this abbreviated score), asking frequency over the past 2 weeks: nervous/on-edge, uncontrollable worry, trouble relaxing, fear something awful will happen',Range:'0=not at all \u2013 3=nearly every day, per item'},
   {Variable:'anxiety_total',Description:'Sum of the 4 anxiety items. Included as a covariate/control variable for the mediation model, since anxiety is independently associated with both migraine and sleep disruption \u2014 not a diagnostic score, do not use published GAD-7 severity cutoffs with this total since it is a 4-item subset, not the full instrument',Range:'0\u201312'},
   {Variable:'psqi_q1_bedtime',Description:'Usual bedtime (24h, HH:MM)',Range:'time'},
