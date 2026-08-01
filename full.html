@@ -1762,7 +1762,7 @@ async function finishNback(fatigue){
   if(!saved.shared){
     toast('⚠️ '+(LANG==='en'?'Saved only on this device - start the collector server for shared data':LANG==='ru'?'Сохранено только на этом устройстве':'Faqat shu qurilmada saqlandi'),'var(--yellow)');
   }
-  try{localStorage.setItem('tadqiqot_done','1');}catch(e){}
+  try{localStorage.setItem('tadqiqot_done','1');localStorage.setItem('tadqiqot_done_pid',S.pid||'');}catch(e){}
   clearDraft();
   S.step=8;render();
 }
@@ -2053,6 +2053,7 @@ async function resetEverything(){
   try{
     localStorage.removeItem('tadqiqot');
     localStorage.removeItem('tadqiqot_done');
+    localStorage.removeItem('tadqiqot_done_pid');
     localStorage.removeItem('tadqiqot_draft');
     localStorage.removeItem('tadqiqot_start_logged');
     sessionStorage.removeItem('tadqiqot_start_logged');
@@ -2580,16 +2581,44 @@ let ALREADY_DONE=false;
 try{ALREADY_DONE=localStorage.getItem('tadqiqot_done')==='1';}catch(e){}
 let RESUME_DRAFT=null;
 try{const raw=localStorage.getItem('tadqiqot_draft');if(raw)RESUME_DRAFT=JSON.parse(raw);}catch(e){}
-if(PREVIEW_MODE){
-  const b=document.createElement('div');
-  b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:999;background:var(--accent2);color:#1a0a10;text-align:center;font-family:var(--font-display);font-weight:700;font-size:12px;padding:5px;';
-  b.textContent='👁️ '+(LANG==='en'?'PREVIEW MODE \u2014 nothing you do here is saved':"KO'RIB CHIQISH REJIMI \u2014 hech narsa saqlanmaydi");
-  document.body.prepend(b);
-  render();
+
+async function stillHasSavedData(){
+  // Returns true if we should KEEP the block in place (data confirmed present, or we
+  // genuinely can't tell). Only returns false \u2014 unlocking them \u2014 when the server
+  // explicitly and successfully confirms their original response no longer exists,
+  // e.g. after a sync outage wiped it. Fails safe: any uncertainty keeps the block.
+  let storedPid=null;
+  try{storedPid=localStorage.getItem('tadqiqot_done_pid');}catch(e){}
+  if(!storedPid)return true; // no pid on record (older completion, or local-only save) \u2014 can't verify, stay safe
+  try{
+    const res=await fetch(apiUrl('/api/exists/'+encodeURIComponent(storedPid)),{cache:'no-store'});
+    if(!res.ok)return true;
+    const j=await res.json();
+    return !(j&&j.exists===false);
+  }catch(e){
+    return true; // couldn't reach the server \u2014 stay conservative, don't unlock on a network hiccup
+  }
 }
-else if(ALREADY_DONE){sBlocked('repeat');}
-else if(RESUME_DRAFT&&RESUME_DRAFT.step>0){showResumePrompt(RESUME_DRAFT);}
-else{render();}
+
+(async function boot(){
+  if(PREVIEW_MODE){
+    const b=document.createElement('div');
+    b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:999;background:var(--accent2);color:#1a0a10;text-align:center;font-family:var(--font-display);font-weight:700;font-size:12px;padding:5px;';
+    b.textContent='👁️ '+(LANG==='en'?'PREVIEW MODE \u2014 nothing you do here is saved':"KO'RIB CHIQISH REJIMI \u2014 hech narsa saqlanmaydi");
+    document.body.prepend(b);
+    render();
+    return;
+  }
+  if(ALREADY_DONE){
+    const keepBlocked=await stillHasSavedData();
+    if(keepBlocked){sBlocked('repeat');return;}
+    // Confirmed gone server-side \u2014 clear the stale local lock and let them back in.
+    try{localStorage.removeItem('tadqiqot_done');localStorage.removeItem('tadqiqot_done_pid');}catch(e){}
+    ALREADY_DONE=false;
+  }
+  if(RESUME_DRAFT&&RESUME_DRAFT.step>0){showResumePrompt(RESUME_DRAFT);}
+  else{render();}
+})();
 </script>
 </body>
 </html>
