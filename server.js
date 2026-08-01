@@ -431,6 +431,17 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, JSON.stringify({ id: "participant" + peekNextParticipantId() }), { "Content-Type": "application/json; charset=utf-8" });
   }
 
+  if (url.pathname.startsWith("/api/exists/") && req.method === "GET") {
+    // Privacy-safe: returns only true/false, never the actual response content.
+    // Used to auto-unlock someone's one-time-participation block ONLY when their
+    // previously-saved data has genuinely been lost (e.g. a sync outage wiped it) \u2014
+    // if their data is still safely on file, the block correctly stays in place.
+    const pid = decodeURIComponent(url.pathname.slice("/api/exists/".length));
+    const rows = readRows();
+    const exists = rows.some(r => String(r.pid || r.participant_id || "") === pid);
+    return send(res, 200, JSON.stringify({ exists }), { "Content-Type": "application/json; charset=utf-8" });
+  }
+
   if (url.pathname === "/api/admin-auth" && req.method === "POST") {
     try {
       const body = JSON.parse(await readRequestBody(req));
