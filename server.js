@@ -195,27 +195,32 @@ function readRows() {
   }
 }
 
-function writeRows(rows) {
+async function writeRows(rows) {
   backupBeforeWrite();
   const content = JSON.stringify(rows, null, 2);
   const tmp = DATA_FILE + ".tmp";
   fs.writeFileSync(tmp, content);
   fs.renameSync(tmp, DATA_FILE);
-  githubPutFile("survey-responses.json", content).catch(() => {});
+  // Wait for the GitHub push to actually settle (succeed or fail) before returning, instead of
+  // firing it and moving on. This closes the window where a server restart could land in the
+  // middle of an in-flight upload and lose that specific save. The local write above already
+  // happened and is never blocked by this \u2014 GitHub failing here just means slower confirmation,
+  // never a failed save for the participant.
+  await githubPutFile("survey-responses.json", content).catch(() => {});
 }
 
-function upsertRow(row) {
+async function upsertRow(row) {
   const rows = readRows();
   const pid = String(row.pid || row.participant_id || consumeNextParticipantId());
   const normalized = { ...row, pid };
   const index = rows.findIndex(item => String(item.pid || item.participant_id) === pid);
   if (index >= 0) rows[index] = normalized;
   else rows.push(normalized);
-  writeRows(rows);
+  await writeRows(rows);
   return { row: normalized, count: rows.length };
 }
 
-function deleteRow(identity) {
+async function deleteRow(identity) {
   const rows = readRows();
   const next = rows.filter(item => {
     const pid = String(item.pid || item.participant_id || "");
@@ -223,7 +228,7 @@ function deleteRow(identity) {
     return pid !== identity && date !== identity;
   });
   const removed = rows.length - next.length;
-  if (removed > 0) writeRows(next);
+  if (removed > 0) await writeRows(next);
   return removed;
 }
 
@@ -323,8 +328,8 @@ function writeTarget(n) {
 }
 
 // ── ADMIN RESET (wipes everything, locally AND on GitHub) ───────────────────
-function resetAllData() {
-  writeRows([]);
+async function resetAllData() {
+  await writeRows([]);
   const counterContent = JSON.stringify({ next: 1 }, null, 2);
   fs.writeFileSync(COUNTER_FILE, counterContent);
   githubPutFile("participant-counter.json", counterContent).catch(() => {});
@@ -414,7 +419,7 @@ const server = http.createServer(async (req, res) => {
       if (!row || typeof row !== "object" || Array.isArray(row)) {
         return send(res, 400, JSON.stringify({ ok: false, error: "Expected a response object" }), { "Content-Type": "application/json; charset=utf-8" });
       }
-      const saved = upsertRow(row);
+      const saved = await upsertRow(row);
       return send(res, 200, JSON.stringify({ ok: true, count: saved.count, pid: saved.row.pid }), { "Content-Type": "application/json; charset=utf-8" });
     } catch (err) {
       return send(res, 400, JSON.stringify({ ok: false, error: err.message }), { "Content-Type": "application/json; charset=utf-8" });
@@ -423,7 +428,7 @@ const server = http.createServer(async (req, res) => {
 
   if (url.pathname.startsWith("/api/responses/") && req.method === "DELETE") {
     const identity = decodeURIComponent(url.pathname.slice("/api/responses/".length));
-    const removed = deleteRow(identity);
+    const removed = await deleteRow(identity);
     return send(res, 200, JSON.stringify({ ok: true, removed }), { "Content-Type": "application/json; charset=utf-8" });
   }
 
@@ -458,7 +463,7 @@ const server = http.createServer(async (req, res) => {
       if (typeof body.password !== "string" || body.password !== ADMIN_PASSWORD) {
         return send(res, 401, JSON.stringify({ ok: false, error: "wrong password" }), { "Content-Type": "application/json; charset=utf-8" });
       }
-      resetAllData();
+      await resetAllData();
       return send(res, 200, JSON.stringify({ ok: true }), { "Content-Type": "application/json; charset=utf-8" });
     } catch (err) {
       return send(res, 500, JSON.stringify({ ok: false, error: err.message }), { "Content-Type": "application/json; charset=utf-8" });
