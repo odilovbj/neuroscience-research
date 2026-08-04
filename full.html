@@ -646,20 +646,34 @@ function saveLocalRow(row){
   }catch(e){console.warn('local save failed:',e);}
   return localOk;
 }
+async function postWithRetry(url,body,maxAttempts=3){
+  let lastErr=null;
+  for(let attempt=1;attempt<=maxAttempts;attempt++){
+    try{
+      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body});
+      return res; // got a real HTTP response (even an error status) \u2014 don't retry, that's not a connectivity problem
+    }catch(e){
+      lastErr=e;
+      if(attempt<maxAttempts){
+        // Likely caught the server mid-restart (cold start on a free host can take 30-60s to
+        // fully come up) \u2014 wait a bit and try again rather than immediately giving up and
+        // falling back to local-only storage.
+        await new Promise(r=>setTimeout(r,attempt*4000));
+      }
+    }
+  }
+  throw lastErr;
+}
 async function saveData(d){
   let shared=false;
   let assignedPid=d.pid||null;
   try{
-    const res=await fetch(apiUrl('/api/responses'),{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(d)
-    });
+    const res=await postWithRetry(apiUrl('/api/responses'),JSON.stringify(d));
     shared=res.ok;
     if(res.ok){
       try{const j=await res.json();if(j&&j.pid)assignedPid=j.pid;}catch(e){}
     }
-  }catch(e){console.warn('server save failed:',e);}
+  }catch(e){console.warn('server save failed after retries:',e);}
   if(!assignedPid){
     // Server unreachable and no id assigned yet \u2014 offline fallback, device-local only.
     try{
@@ -1032,6 +1046,7 @@ function startSurveyFromConsent(){
     return;
   }
   logSurveyStart();
+  startHeartbeat();
   S.step=1;render();
 }
 function logDropout(reason){
@@ -1059,6 +1074,22 @@ function logSurveyStart(){
     sessionStorage.setItem('tadqiqot_start_logged','1');
   }catch(e){}
   try{fetch(apiUrl('/api/starts'),{method:'POST'}).catch(()=>{});}catch(e){}
+}
+let HEARTBEAT_TIMER=null;
+function startHeartbeat(){
+  // The survey takes 5-10+ minutes, and the client makes no server requests during that whole
+  // time otherwise \u2014 if the server spins down partway through (free hosting), the FINAL save
+  // at the end can hit a sleeping/restarting server and silently fail. This ping, every 4 minutes
+  // while someone is actively taking the survey, keeps the server warm for their own session
+  // specifically, regardless of whether the external keep-alive workflow happens to land in
+  // this exact window.
+  if(PREVIEW_MODE||HEARTBEAT_TIMER)return;
+  HEARTBEAT_TIMER=setInterval(()=>{
+    try{fetch(apiUrl('/api/health'),{cache:'no-store'}).catch(()=>{});}catch(e){}
+  },4*60*1000);
+}
+function stopHeartbeat(){
+  if(HEARTBEAT_TIMER){clearInterval(HEARTBEAT_TIMER);HEARTBEAT_TIMER=null;}
 }
 
 // ═══ STEP 1: DEMOGRAPHICS ═════════════════════════════════════════════════
@@ -1753,10 +1784,12 @@ async function finishNback(fatigue){
   if(PREVIEW_MODE){
     toast('👁️ '+(LANG==='en'?'Preview mode \u2014 nothing was saved':LANG==='ru'?'Режим предпросмотра \u2014 ничего не сохранено':"Ko'rib chiqish rejimi \u2014 hech narsa saqlanmadi"),'var(--accent2)');
     clearDraft();
+    stopHeartbeat();
     S.step=8;render();
     return;
   }
   const saved=await saveData(payload);
+  stopHeartbeat();
   S.pid=saved.pid;
   S.saveStatus=saved.shared?'server':'local-only';
   if(!saved.shared){
