@@ -81,14 +81,17 @@ async function githubPutFile(relPath, content) {
     if (GH_SHA_CACHE[relPath]) body.sha = GH_SHA_CACHE[relPath];
     let res = await fetch(url, { method: "PUT", headers: ghHeaders(), body: JSON.stringify(body) });
 
-    if (res.status === 409 || res.status === 422) {
+    // Retry a few times on a sha conflict (e.g. someone edited the file on GitHub directly).
+    // Concurrent requests from this app itself no longer race here \u2014 they're serialized by
+    // withLock() before ever reaching this function \u2014 so this loop only ever has to handle
+    // conflicts coming from outside this process.
+    for (let attempt = 0; attempt < 3 && (res.status === 409 || res.status === 422); attempt++) {
       const fresh = await fetch(url + `?ref=${encodeURIComponent(GH_BRANCH)}`, { headers: ghHeaders() });
-      if (fresh.ok) {
-        const j = await fresh.json();
-        GH_SHA_CACHE[relPath] = j.sha;
-        body.sha = j.sha;
-        res = await fetch(url, { method: "PUT", headers: ghHeaders(), body: JSON.stringify(body) });
-      }
+      if (!fresh.ok) break;
+      const j = await fresh.json();
+      GH_SHA_CACHE[relPath] = j.sha;
+      body.sha = j.sha;
+      res = await fetch(url, { method: "PUT", headers: ghHeaders(), body: JSON.stringify(body) });
     }
 
     if (!res.ok) {
@@ -163,6 +166,24 @@ async function verifyGithubWriteAccess() {
   }
 }
 
+// ── WRITE SERIALIZATION ──────────────────────────────────────────────────────
+// Root-cause fix for the "409 ... is at X but expected Y" GitHub errors: every
+// read-modify-write below (readRows -> mutate -> writeRows, counter bump, etc.)
+// was unsynchronized, so two participants submitting within the same second or
+// two could both read the same starting state. Whichever finished second then
+// pushed to GitHub with a stale cached sha -> 409, AND (worse) could silently
+// overwrite the other's local write, dropping a real participant's data.
+// This queues operations per resource key so they run one at a time instead of
+// racing. Cheap, no external deps, and correct for a single Node process (which
+// is what Render's free tier runs).
+const _queues = Object.create(null);
+function withLock(key, fn) {
+  const prev = _queues[key] || Promise.resolve();
+  const run = prev.then(fn, fn); // run fn regardless of whether the previous op in this queue failed
+  _queues[key] = run.catch(() => {}); // never let a rejection break the chain for future callers
+  return run;
+}
+
 // ── LOCAL BACKUPS ────────────────────────────────────────────────────────────
 function backupBeforeWrite() {
   try {
@@ -209,27 +230,33 @@ async function writeRows(rows) {
   await githubPutFile("survey-responses.json", content).catch(() => {});
 }
 
-async function upsertRow(row) {
-  const rows = readRows();
-  const pid = String(row.pid || row.participant_id || consumeNextParticipantId());
-  const normalized = { ...row, pid };
-  const index = rows.findIndex(item => String(item.pid || item.participant_id) === pid);
-  if (index >= 0) rows[index] = normalized;
-  else rows.push(normalized);
-  await writeRows(rows);
-  return { row: normalized, count: rows.length };
+function upsertRow(row) {
+  // Locked under "responses" so this can never interleave with deleteRow/resetAllData,
+  // and never race another upsertRow from a second participant submitting concurrently.
+  return withLock("responses", async () => {
+    const rows = readRows();
+    const pid = String(row.pid || row.participant_id || (await consumeNextParticipantId()));
+    const normalized = { ...row, pid };
+    const index = rows.findIndex(item => String(item.pid || item.participant_id) === pid);
+    if (index >= 0) rows[index] = normalized;
+    else rows.push(normalized);
+    await writeRows(rows);
+    return { row: normalized, count: rows.length };
+  });
 }
 
-async function deleteRow(identity) {
-  const rows = readRows();
-  const next = rows.filter(item => {
-    const pid = String(item.pid || item.participant_id || "");
-    const date = String(item.date || "");
-    return pid !== identity && date !== identity;
+function deleteRow(identity) {
+  return withLock("responses", async () => {
+    const rows = readRows();
+    const next = rows.filter(item => {
+      const pid = String(item.pid || item.participant_id || "");
+      const date = String(item.date || "");
+      return pid !== identity && date !== identity;
+    });
+    const removed = rows.length - next.length;
+    if (removed > 0) await writeRows(next);
+    return removed;
   });
-  const removed = rows.length - next.length;
-  if (removed > 0) await writeRows(next);
-  return removed;
 }
 
 function peekNextParticipantId() {
@@ -248,15 +275,19 @@ function consumeNextParticipantId() {
   // Actually reserves an ID by incrementing the persisted counter. Only ever call this at the
   // moment a real response is being saved (inside upsertRow/POST /api/responses) \u2014 never from
   // a diagnostic or read-only check, or the counter jumps every time someone just looks at it.
-  const n = peekNextParticipantId();
-  const content = JSON.stringify({ next: n + 1 }, null, 2);
-  try {
-    fs.writeFileSync(COUNTER_FILE, content);
-  } catch (err) {
-    console.error("Could not persist participant counter:", err.message);
-  }
-  githubPutFile("participant-counter.json", content).catch(() => {});
-  return "participant" + n;
+  // Locked under "counter" so two concurrent submissions can never read-then-write the same
+  // "next" value and hand out the same participant ID twice.
+  return withLock("counter", async () => {
+    const n = peekNextParticipantId();
+    const content = JSON.stringify({ next: n + 1 }, null, 2);
+    try {
+      fs.writeFileSync(COUNTER_FILE, content);
+    } catch (err) {
+      console.error("Could not persist participant counter:", err.message);
+    }
+    githubPutFile("participant-counter.json", content).catch(() => {});
+    return "participant" + n;
+  });
 }
 
 // ── FUNNEL TRACKING (starts / dropouts) ──────────────────────────────────────
@@ -271,16 +302,18 @@ function readStarts() {
 }
 
 function appendStart() {
-  const starts = readStarts();
-  starts.push({ date: new Date().toISOString() });
-  const content = JSON.stringify(starts, null, 2);
-  try {
-    fs.writeFileSync(STARTS_FILE, content);
-  } catch (err) {
-    console.error("Could not record survey start:", err.message);
-  }
-  githubPutFile("survey-starts.json", content).catch(() => {});
-  return starts.length;
+  return withLock("starts", async () => {
+    const starts = readStarts();
+    starts.push({ date: new Date().toISOString() });
+    const content = JSON.stringify(starts, null, 2);
+    try {
+      fs.writeFileSync(STARTS_FILE, content);
+    } catch (err) {
+      console.error("Could not record survey start:", err.message);
+    }
+    githubPutFile("survey-starts.json", content).catch(() => {});
+    return starts.length;
+  });
 }
 
 function readDropouts() {
@@ -294,16 +327,18 @@ function readDropouts() {
 }
 
 function appendDropout(entry) {
-  const dropouts = readDropouts();
-  dropouts.push({ date: new Date().toISOString(), step: entry.step ?? null, reason: entry.reason ?? null, durSec: entry.durSec ?? null });
-  const content = JSON.stringify(dropouts, null, 2);
-  try {
-    fs.writeFileSync(DROPOUTS_FILE, content);
-  } catch (err) {
-    console.error("Could not record dropout:", err.message);
-  }
-  githubPutFile("survey-dropouts.json", content).catch(() => {});
-  return dropouts.length;
+  return withLock("dropouts", async () => {
+    const dropouts = readDropouts();
+    dropouts.push({ date: new Date().toISOString(), step: entry.step ?? null, reason: entry.reason ?? null, durSec: entry.durSec ?? null });
+    const content = JSON.stringify(dropouts, null, 2);
+    try {
+      fs.writeFileSync(DROPOUTS_FILE, content);
+    } catch (err) {
+      console.error("Could not record dropout:", err.message);
+    }
+    githubPutFile("survey-dropouts.json", content).catch(() => {});
+    return dropouts.length;
+  });
 }
 
 // ── SAMPLE-SIZE TARGET ───────────────────────────────────────────────────────
@@ -318,25 +353,36 @@ function readTarget() {
 }
 
 function writeTarget(n) {
-  const content = JSON.stringify({ target: n }, null, 2);
-  try {
-    fs.writeFileSync(TARGET_FILE, content);
-  } catch (err) {
-    console.error("Could not save sample target:", err.message);
-  }
-  githubPutFile("sample-target.json", content).catch(() => {});
+  return withLock("target", async () => {
+    const content = JSON.stringify({ target: n }, null, 2);
+    try {
+      fs.writeFileSync(TARGET_FILE, content);
+    } catch (err) {
+      console.error("Could not save sample target:", err.message);
+    }
+    githubPutFile("sample-target.json", content).catch(() => {});
+  });
 }
 
 // ── ADMIN RESET (wipes everything, locally AND on GitHub) ───────────────────
 async function resetAllData() {
-  await writeRows([]);
-  const counterContent = JSON.stringify({ next: 1 }, null, 2);
-  fs.writeFileSync(COUNTER_FILE, counterContent);
-  githubPutFile("participant-counter.json", counterContent).catch(() => {});
-  fs.writeFileSync(STARTS_FILE, "[]");
-  githubPutFile("survey-starts.json", "[]").catch(() => {});
-  fs.writeFileSync(DROPOUTS_FILE, "[]");
-  githubPutFile("survey-dropouts.json", "[]").catch(() => {});
+  // Takes every lock so a reset can never interleave with a submission that's mid-flight
+  // (e.g. a participant's upsertRow reading rows just before this clears them, then writing
+  // its stale copy back afterward and "undoing" the reset).
+  await withLock("responses", () => writeRows([]));
+  await withLock("counter", async () => {
+    const counterContent = JSON.stringify({ next: 1 }, null, 2);
+    fs.writeFileSync(COUNTER_FILE, counterContent);
+    githubPutFile("participant-counter.json", counterContent).catch(() => {});
+  });
+  await withLock("starts", async () => {
+    fs.writeFileSync(STARTS_FILE, "[]");
+    githubPutFile("survey-starts.json", "[]").catch(() => {});
+  });
+  await withLock("dropouts", async () => {
+    fs.writeFileSync(DROPOUTS_FILE, "[]");
+    githubPutFile("survey-dropouts.json", "[]").catch(() => {});
+  });
   console.log("ADMIN RESET: all response/counter/starts/dropouts data wiped");
 }
 
@@ -471,7 +517,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === "/api/starts" && req.method === "POST") {
-    const total = appendStart();
+    const total = await appendStart();
     return send(res, 200, JSON.stringify({ ok: true, total }), { "Content-Type": "application/json; charset=utf-8" });
   }
 
@@ -479,7 +525,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const raw = await readRequestBody(req);
       const body = raw ? JSON.parse(raw) : {};
-      const total = appendDropout(body);
+      const total = await appendDropout(body);
       return send(res, 200, JSON.stringify({ ok: true, total }), { "Content-Type": "application/json; charset=utf-8" });
     } catch (err) {
       return send(res, 200, JSON.stringify({ ok: false }), { "Content-Type": "application/json; charset=utf-8" });
@@ -503,7 +549,7 @@ const server = http.createServer(async (req, res) => {
       const body = JSON.parse(await readRequestBody(req));
       const n = Number(body.target);
       if (!n || n < 1) return send(res, 400, JSON.stringify({ ok: false, error: "invalid target" }), { "Content-Type": "application/json; charset=utf-8" });
-      writeTarget(n);
+      await writeTarget(n);
       return send(res, 200, JSON.stringify({ ok: true, target: n }), { "Content-Type": "application/json; charset=utf-8" });
     } catch (err) {
       return send(res, 400, JSON.stringify({ ok: false, error: err.message }), { "Content-Type": "application/json; charset=utf-8" });
