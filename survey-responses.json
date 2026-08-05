@@ -2474,6 +2474,7 @@
       "firstInteractionMs": 1060,
       "fatigue": 1,
       "excludeRecommended": true,
+      "honestySelfReport": "careful",
       "ipHash": "77aad1027744f53d",
       "duplicateSuspect": false
     }
