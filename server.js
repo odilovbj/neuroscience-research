@@ -12,6 +12,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
+const crypto = require("crypto");
 const { URL } = require("url");
 
 // ── CORE CONFIG ─────────────────────────────────────────────────────────────
@@ -26,6 +27,10 @@ const TARGET_FILE = path.join(ROOT, "sample-target.json");
 const BACKUP_DIR = path.join(ROOT, "backups");
 const MAX_BACKUPS = 25;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "qwerty#3825";
+// Salts the IP hash below so raw IPs are never written to disk, only an irreversible-in-
+// practice hash. Set IP_SALT in Render's env vars for a private deployment-specific salt;
+// falls back to a default so this works out of the box either way.
+const IP_SALT = process.env.IP_SALT || "svy-ip-salt-8825";
 
 // ── GITHUB-BACKED PERSISTENCE ────────────────────────────────────────────────
 // Set these three in Render's Environment tab to enable it:
@@ -230,12 +235,77 @@ async function writeRows(rows) {
   await githubPutFile("survey-responses.json", content).catch(() => {});
 }
 
-function upsertRow(row) {
+// ── SERVER-SIDE QUALITY-CONTROL CHECKS ───────────────────────────────────────
+// Two checks the client can't reliably do for itself, because both require seeing
+// every other row on file, which only the server has:
+//   1. duplicateSuspect \u2014 same hashed IP AND same client fingerprint as an existing
+//      row \u2014 flags likely repeat-participation (e.g. someone retaking the survey in
+//      a new incognito window after localStorage blocked a normal retry). Requires
+//      BOTH to match, not just IP alone, since many genuine participants can share
+//      an IP (a classroom or lab on one wifi network) \u2014 that alone isn't suspicious.
+//   2. Content-based de-dup for brand-new (pid-less) submissions \u2014 a network retry
+//      after a timeout can cause the *same* "new participant" payload to arrive twice;
+//      without this, that mints two participant IDs for one real person. If an
+//      essentially-identical payload was saved in the last 60s, this reuses that
+//      participant's existing ID instead of creating a second one.
+// Raw IPs are never written to disk \u2014 only a salted one-way hash.
+function hashIp(ip) {
+  return crypto.createHash("sha256").update(String(ip) + IP_SALT).digest("hex").slice(0, 16);
+}
+function clientIpFromReq(req) {
+  const xf = req.headers["x-forwarded-for"];
+  if (xf) return String(xf).split(",")[0].trim();
+  return (req.socket && req.socket.remoteAddress) || "";
+}
+function contentFingerprint(row) {
+  // Deliberately excludes pid/date/dur/meta \u2014 those legitimately differ between two
+  // requests for the very same real submission (retry has a later timestamp, etc).
+  try {
+    const { pid, participant_id, date, dur, meta, fingerprint, qc, ...rest } = row || {};
+    return JSON.stringify(rest);
+  } catch (err) {
+    return null;
+  }
+}
+function applyServerSideQC(row, req, existingRows) {
+  try {
+    const ipHash = hashIp(clientIpFromReq(req));
+    const fp = typeof row.fingerprint === "string" && row.fingerprint ? row.fingerprint : null;
+    const pid = String(row.pid || row.participant_id || "");
+    const duplicateSuspect = !!(fp && existingRows.some(r => {
+      const rp = String(r.pid || r.participant_id || "");
+      if (pid && rp === pid) return false; // don't compare a row against its own prior save
+      return r.qc && r.qc.ipHash === ipHash && r.fingerprint === fp;
+    }));
+    row.qc = row.qc || {};
+    row.qc.ipHash = ipHash;
+    row.qc.duplicateSuspect = duplicateSuspect;
+    if (duplicateSuspect) row.qc.excludeRecommended = true;
+  } catch (err) {
+    console.error("Server-side QC check failed (continuing without it):", err.message);
+  }
+}
+
+
+function upsertRow(row, req) {
   // Locked under "responses" so this can never interleave with deleteRow/resetAllData,
   // and never race another upsertRow from a second participant submitting concurrently.
   return withLock("responses", async () => {
     const rows = readRows();
-    const pid = String(row.pid || row.participant_id || (await consumeNextParticipantId()));
+    let pid = row.pid || row.participant_id;
+    if (!pid) {
+      // Content-dedup backstop \u2014 see the comment above applyServerSideQC for why this exists.
+      const fp = contentFingerprint(row);
+      const recentDup = fp && rows.find(r => {
+        const rDate = Date.parse(r.date || "");
+        const isRecent = !isNaN(rDate) && Date.now() - rDate < 60000;
+        return isRecent && contentFingerprint(r) === fp;
+      });
+      pid = recentDup ? (recentDup.pid || recentDup.participant_id) : await consumeNextParticipantId();
+    }
+    pid = String(pid);
+    row.pid = pid; // set before the QC check below so it correctly excludes comparing this row to itself
+    if (req) applyServerSideQC(row, req, rows);
     const normalized = { ...row, pid };
     const index = rows.findIndex(item => String(item.pid || item.participant_id) === pid);
     if (index >= 0) rows[index] = normalized;
@@ -465,7 +535,7 @@ const server = http.createServer(async (req, res) => {
       if (!row || typeof row !== "object" || Array.isArray(row)) {
         return send(res, 400, JSON.stringify({ ok: false, error: "Expected a response object" }), { "Content-Type": "application/json; charset=utf-8" });
       }
-      const saved = await upsertRow(row);
+      const saved = await upsertRow(row, req);
       return send(res, 200, JSON.stringify({ ok: true, count: saved.count, pid: saved.row.pid }), { "Content-Type": "application/json; charset=utf-8" });
     } catch (err) {
       return send(res, 400, JSON.stringify({ ok: false, error: err.message }), { "Content-Type": "application/json; charset=utf-8" });
