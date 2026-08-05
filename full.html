@@ -427,6 +427,12 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Light / dark mode">🌙</button>
 
 <div id="app"></div>
+<!-- Honeypot: invisible to real users (off-screen, unreachable by tab, no autofill hint a
+     human would ever fill in), but a script/bot that blindly fills every input field on the
+     page will populate it. Left outside #app on purpose so it survives every screen re-render
+     instead of being wiped out on each step change. -->
+<input type="text" id="hp_website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+  style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;" />
 <button class="admin-btn" onclick="adminGo()">● Data</button>
 <div class="copyright" id="copyright">© <span id="cyr"></span> Migraine, Sleep & Memory Study. All rights reserved.</div>
 <div class="toast" id="toast"></div>
@@ -630,6 +636,10 @@ const S={
   nback:{trials:[],dprime:null,acc:null,medRT:null,meanRT:null,bias:null,hits:0,misses:0,fa:0,cr:0}
 };
 const STEPS=9;
+// ── BOT-TIMING CHECK ── a genuine human needs at least a moment to read the intro screen
+// before their first tap; a script driving the page can click within milliseconds of load.
+let firstInteractionMs=null;
+document.addEventListener('click',()=>{if(firstInteractionMs===null)firstInteractionMs=Date.now()-S.t0;},{capture:true});
 const PSQI5=['a','b','c','d','e','f','g','h','i'];
 const PSQI5E=['⏰','🌙','🚽','🫁','🔊','🥶','🥵','😱','🤕'];
 const FE=['😌','🙂','😐','😴'];
@@ -1230,6 +1240,10 @@ function s2(){
         {v:'3',l:LANG==='en'?'Nearly every day':LANG==='ru'?'Почти каждый день':'Deyarli har kuni',e:'😣'}
       ],true)}
     </div>`).join('')}
+    <div class="qs-block qc-block" style="margin-top:22px;">
+      <div class="qs"><span class="qs-icon">🎯</span>${LANG==='en'?"Quick check \u2014 to show you're still reading, please select \"No\" here:":LANG==='ru'?'Быстрая проверка \u2014 чтобы показать, что вы всё ещё внимательны, выберите здесь «Нет»:':'Tezkor tekshiruv \u2014 hali ham diqqat bilan o\u2018qiyotganingizni ko\u2018rsatish uchun, shu yerda "Yo\u2018q" ni tanlang:'}</div>
+      ${pillGroup('qc_attn2','✅','❌',t('yes'),t('no'),true)}
+    </div>
   </div></div>
   <div class="brow">
     <button class="btn btn-ghost" onclick="S.step=1;render()">${t('back')}</button>
@@ -1245,6 +1259,8 @@ function subMig(){
   const anxKeys=['anx1','anx2','anx3','anx4'];
   const anxVals=[];
   for(const k of anxKeys){const v=getVal(k);if(v===null){toast('⚠️ '+t('sel'),`var(--yellow)`);return;}anxVals.push(parseInt(v));}
+  const attn2=getVal('qc_attn2');
+  S.qc=S.qc||{};S.qc.attnPass2=attn2==='yoq';S.qc.attnAnswered2=attn2!==null;
   S.migraine.freq=freq;S.migraine.score=yes;S.migraine.likely=yes>=2;
   S.migraine.recency=recency;
   S.migraine.aura=aura;
@@ -1763,6 +1779,7 @@ function timeInBedHours(bedtime,waketime){
   return (wake-bed)/60;
 }
 let SUBMITTING_NBACK=false;
+let LAST_SAVED_PAYLOAD=null; // holds the just-saved response so the end-of-survey honesty check (see s8) can update it in place, by pid, without resending a stale copy
 function showFatiguePrompt(){
   stopTimerAnim();
   nbStopTracking(); // real N-back segment is over — stop counting focus loss from here on
@@ -1818,9 +1835,28 @@ async function finishNback(fatigue){
   const nbFadedOut=half>=4&&firstHalfResp>=2&&secondHalfResp===0; // engaged early, then went totally silent
   const nbOverResponse=totalTrialsN>0&&(respondedTotal/totalTrialsN)>=0.85; // pressing almost everything, matches or not
   const nbDistracted=nbBlurCount>0&&nbBlurMs>=2000; // tab/window unfocused for 2s+ during the real test
+  // RT-variance check: hits with almost zero variance in reaction time across 4+ presses is a
+  // pattern genuine human reflexes essentially never produce \u2014 scripted/robotic responding does.
+  const hitRTs=S.nback.trials.filter(x=>x.isM&&x.responded&&x.rt!=null).map(x=>x.rt);
+  let nbRTFlat=false;
+  if(hitRTs.length>=4){
+    const mean=hitRTs.reduce((a,b)=>a+b,0)/hitRTs.length;
+    const variance=hitRTs.reduce((a,b)=>a+(b-mean)*(b-mean),0)/hitRTs.length;
+    nbRTFlat=Math.sqrt(variance)<20;
+  }
+  // Honeypot: a real person never sees or fills this field; a script that blindly fills every
+  // input on the page does.
+  const hpEl=document.getElementById('hp_website');
+  const honeypotTripped=!!(hpEl&&hpEl.value&&hpEl.value.trim()!=='');
+  // Instant-first-click: a human needs at least a brief moment to read the intro before
+  // tapping anything; near-zero time to first interaction suggests an automated script.
+  const instantFirstClick=firstInteractionMs!==null&&firstInteractionMs<400;
+  const fingerprint=await computeFingerprint();
   const qc={
     attnPass:!!(S.qc&&S.qc.attnPass),
     attnAnswered:!!(S.qc&&S.qc.attnAnswered),
+    attnPass2:!!(S.qc&&S.qc.attnPass2), // second, differently-worded instructed-response check (mid-survey)
+    attnAnswered2:!!(S.qc&&S.qc.attnAnswered2),
     fast:durSec<180, // under 3 minutes for a ~15-20 min survey is almost certainly rushed
     anticipatory:stats.anticipatory>=2, // 2+ sub-150ms presses \u2014 near-impossible as genuine reactions
     straightLine, // identical answer on all 9 PSQI disturbance sub-items \u2014 classic satisficing pattern
@@ -1831,10 +1867,16 @@ async function finishNback(fatigue){
     nbDistracted, // tab/window lost focus for 2s+ during the real n-back test
     nbBlurCount, // how many times focus was lost during the real n-back test
     nbBlurMs, // total ms unfocused during the real n-back test
+    nbRTFlat, // near-zero variance in n-back hit reaction times \u2014 suggests scripted responses
+    honeypotTripped, // hidden field got filled in \u2014 near-certain sign of a bot/script
+    instantFirstClick, // first click landed <400ms after page load \u2014 no time for a human to read
+    firstInteractionMs, // raw ms from load to first click, for review
     fatigue:fatigue??null // 1\u20135 self-reported task difficulty/fatigue
   };
   qc.excludeRecommended=qc.fast||qc.anticipatory||qc.straightLine||qc.timeInconsistent||!qc.attnPass
-    ||qc.nbNoResponse||qc.nbFadedOut||qc.nbOverResponse||qc.nbDistracted;
+    ||(qc.attnAnswered2&&!qc.attnPass2)
+    ||qc.nbNoResponse||qc.nbFadedOut||qc.nbOverResponse||qc.nbDistracted||qc.nbRTFlat
+    ||qc.honeypotTripped||qc.instantFirstClick;
   if(PREVIEW_MODE){
     S.pid='PREVIEW-'+Math.random().toString(36).slice(2,7);
   }
@@ -1844,6 +1886,7 @@ async function finishNback(fatigue){
     appVersion:SURVEY_VERSION,
     preview:PREVIEW_MODE,
     meta:getSessionMeta(),
+    fingerprint,
     demo:S.demo,migraine:S.migraine,
     psqi:{global:S.psqi.global,...S.psqi},
     nback:{acc:stats.acc,hitAcc:stats.hitAcc,dprime:stats.dprime,bias:stats.bias,meanRT:stats.meanRT,medRT:stats.medRT,hits:stats.hits,misses:stats.misses,fa:stats.fa,cr:stats.cr,nTargets:nT,nNonTargets:nNT,targetRatio,responseRate},
@@ -1859,6 +1902,8 @@ async function finishNback(fatigue){
   const saved=await saveData(payload);
   stopHeartbeat();
   S.pid=saved.pid;
+  payload.pid=saved.pid;
+  LAST_SAVED_PAYLOAD=payload; // lets the honesty check on the results screen update this exact row
   S.saveStatus=saved.shared?'server':'local-only';
   if(!saved.shared){
     toast('⚠️ '+(LANG==='en'?'Saved only on this device - start the collector server for shared data':LANG==='ru'?'Сохранено только на этом устройстве':'Faqat shu qurilmada saqlandi'),'var(--yellow)');
@@ -1869,6 +1914,20 @@ async function finishNback(fatigue){
 }
 
 // ═══ STEP 8: RESULTS ══════════════════════════════════════════════════════
+async function submitHonesty(val){
+  const opts=document.getElementById('honesty-opts');
+  if(opts)opts.style.pointerEvents='none';
+  const chosen=document.getElementById('honesty-opt-'+val);
+  if(chosen)chosen.classList.add('selected');
+  document.querySelectorAll('#honesty-opts .opt').forEach(el=>{if(el!==chosen)el.style.opacity='.35';});
+  const thanks=document.getElementById('honesty-thanks');
+  if(thanks)thanks.style.display='block';
+  if(!LAST_SAVED_PAYLOAD||PREVIEW_MODE)return; // nothing to update (preview mode, or save never completed)
+  LAST_SAVED_PAYLOAD.qc=LAST_SAVED_PAYLOAD.qc||{};
+  LAST_SAVED_PAYLOAD.qc.honestySelfReport=val;
+  if(val==='rushed')LAST_SAVED_PAYLOAD.qc.excludeRecommended=true; // self-reported rushing is as good a signal as any of the automated ones
+  try{await saveData(LAST_SAVED_PAYLOAD);}catch(e){console.warn('honesty follow-up save failed:',e);}
+}
 function s8(){
   setP(8);
   const{hits,misses,fa,cr,acc,hitAcc,meanRT,medRT,dprime,bias}=S.nback;
@@ -1941,6 +2000,22 @@ function s8(){
       <div class="interp">${perf}</div>
       <p class="muted2" style="text-align:center;margin-top:12px;">${t('disc')}</p>
     </div>
+  </div></div>
+  <div class="card"><div class="card-inner">
+    <div class="eyebrow" style="margin-bottom:12px;">${LANG==='en'?'One last thing':LANG==='ru'?'Последнее':'Oxirgi savol'}</div>
+    <div class="qs" style="margin-bottom:4px;">${LANG==='en'?"No penalty either way \u2014 it just helps us know which results to trust. Be honest: did you pay full attention the whole way through, or did you rush / click through some parts?":LANG==='ru'?'Это никак не повлияет на вас \u2014 просто поможет понять, каким результатам доверять. Честно: вы были внимательны всё время, или где-то торопились / кликали не глядя?':"Bu sizga hech qanday ta'sir qilmaydi \u2014 shunchaki qaysi natijalarga ishonish mumkinligini bilishga yordam beradi. Rostini ayting: boshidan oxirigacha diqqat bilan javob berdingizmi, yoki qayerdadir shoshildingiz / qaramay bosdingiz?"}</div>
+    <div class="opts" id="honesty-opts" style="margin-top:14px;">
+      <div class="opt" id="honesty-opt-careful" onclick="submitHonesty('careful')">
+        <div class="opt-ico">✅</div><div class="opt-txt">${LANG==='en'?'I paid attention the whole way through':LANG==='ru'?'Я был(а) внимателен(на) всё время':"Boshidan oxirigacha diqqat bilan javob berdim"}</div><div class="opt-chk">✓</div>
+      </div>
+      <div class="opt" id="honesty-opt-rushed" onclick="submitHonesty('rushed')">
+        <div class="opt-ico">😅</div><div class="opt-txt">${LANG==='en'?'I rushed or clicked through part of it':LANG==='ru'?'Я торопился(лась) или кликал(а) не глядя на часть вопросов':"Ba'zi joylarda shoshildim yoki qaramay bosdim"}</div><div class="opt-chk">✓</div>
+      </div>
+      <div class="opt" id="honesty-opt-prefer_not" onclick="submitHonesty('prefer_not')">
+        <div class="opt-ico">🤐</div><div class="opt-txt">${LANG==='en'?'Prefer not to say':LANG==='ru'?'Предпочитаю не отвечать':"Aytishni xohlamayman"}</div><div class="opt-chk">✓</div>
+      </div>
+    </div>
+    <div id="honesty-thanks" style="display:none;margin-top:10px;text-align:center;font-size:13px;" class="muted2">${LANG==='en'?'Thanks for letting us know.':LANG==='ru'?'Спасибо, что сообщили.':'Xabar bergangiz uchun rahmat.'}</div>
   </div></div>
   <div style="text-align:center;margin-top:6px;">
     <button class="btn btn-primary" onclick="S.step=9;render()">${LANG==='en'?'Finish':'Yakunlash'} →</button>
@@ -2017,8 +2092,9 @@ function copyPid(){
 function resetSurvey(){
   try{if(localStorage.getItem('tadqiqot_done')==='1'){sBlocked('repeat');return;}}catch(e){}
   S.step=0;S.pid='p'+Date.now()+Math.random().toString(36).slice(2,5);
-  S.t0=Date.now();S.demo={};S.migraine={};S.psqi={};
+  S.t0=Date.now();S.demo={};S.migraine={};S.psqi={};S.qc={};
   S.nback={trials:[],dprime:null,acc:null,medRT:null,meanRT:null,bias:null,hits:0,misses:0,fa:0,cr:0};
+  firstInteractionMs=null;
   render();
 }
 
@@ -2083,14 +2159,35 @@ const ADMIN_LABELS={
   nback_mean_rt_ms:'Mean Reaction Time (ms)',nback_median_rt_ms:'Median Reaction Time (ms)',
   nback_hits:'Hits',nback_misses:'Misses',nback_false_alarms:'False Alarms',nback_correct_rejections:'Correct Rejections',
   nback_response_rate:'N-back Response Rate',
-  qc_attention_check_passed:'Attention Check Passed',qc_fast_completion_flag:'Fast-Completion Flag',qc_anticipatory_response_flag:'Anticipatory-Response Flag',qc_straight_lining_flag:'Straight-Lining Flag',qc_time_inconsistent_flag:'Time-Inconsistency Flag',
-  qc_nb_no_response_flag:'N-back No-Response Flag',qc_nb_faded_out_flag:'N-back Faded-Out Flag',qc_nb_over_response_flag:'N-back Over-Response Flag',qc_nb_distracted_flag:'N-back Tab-Switch Flag',
+  qc_attention_check_passed:'Attention Check 1 Passed',qc_attention_check_2_passed:'Attention Check 2 Passed',qc_fast_completion_flag:'Fast-Completion Flag',qc_anticipatory_response_flag:'Anticipatory-Response Flag',qc_straight_lining_flag:'Straight-Lining Flag',qc_time_inconsistent_flag:'Time-Inconsistency Flag',
+  qc_nb_no_response_flag:'N-back No-Response Flag',qc_nb_faded_out_flag:'N-back Faded-Out Flag',qc_nb_over_response_flag:'N-back Over-Response Flag',qc_nb_distracted_flag:'N-back Tab-Switch Flag',qc_nb_rt_flat_flag:'N-back Flat-RT Flag',
+  qc_honeypot_flag:'Honeypot Tripped',qc_instant_click_flag:'Instant-First-Click Flag',qc_duplicate_suspect_flag:'Duplicate-Device Suspect',qc_honesty_self_report:'Self-Reported Honesty',
   qc_exclude_recommended:'Exclude Recommended'
 };
 const ADMIN_PW_HASH='592bf2862b79344c231ffe1597e851f62b0fa57279ab04de0ce200513304e077'; // SHA-256, offline fallback only \u2014 real check happens server-side when the collector is running
 async function sha256Hex(str){
   const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+// ── DEVICE FINGERPRINT ── one more signal (paired server-side with a hashed IP) to flag
+// likely repeat-participation \u2014 e.g. someone retaking the survey in a fresh incognito
+// window after localStorage blocked a normal repeat attempt. Only a hash is ever sent or
+// stored, never the raw values, and it's a review flag, not an automatic block.
+async function computeFingerprint(){
+  try{
+    const parts=[
+      navigator.userAgent||'',navigator.language||'',String(navigator.hardwareConcurrency||''),
+      `${screen.width}x${screen.height}x${screen.colorDepth}`,
+      (Intl.DateTimeFormat().resolvedOptions().timeZone)||'',
+      String(navigator.maxTouchPoints||0)
+    ];
+    try{
+      const c=document.createElement('canvas');c.width=200;c.height=40;
+      const ctx=c.getContext('2d');
+      if(ctx){ctx.textBaseline='top';ctx.font='14px Arial';ctx.fillText('svy-fp-8825 \u00e9\u00e7\u00f1',2,2);parts.push(c.toDataURL());}
+    }catch(e){}
+    return await sha256Hex(parts.join('||'));
+  }catch(e){return null;}
 }
 async function testConnection(){
   const box=document.getElementById('conn-test-result');
@@ -2356,7 +2453,7 @@ function renderScatterSVG(rows){
     <circle cx="${W-90}" cy="14" r="4" fill="var(--accent)"/><text x="${W-82}" y="17" font-size="8.5" fill="var(--muted)" font-family="Inter,sans-serif">${LANG==='en'?'migraine likely':'migren ehtimoli'}</text>
   </svg>`;
 }
-const ADMIN_SUMMARY_KEYS=['participant_id','date','age','sex','language','duration_sec','mig_score','mig_likely','psqi_global','nback_accuracy_pct','nback_dprime','nback_criterion_c','nback_mean_rt_ms','nback_median_rt_ms','qc_exclude_recommended','qc_attention_check_passed','qc_fast_completion_flag','qc_anticipatory_response_flag','qc_straight_lining_flag','qc_nb_no_response_flag','qc_nb_faded_out_flag','qc_nb_distracted_flag'];
+const ADMIN_SUMMARY_KEYS=['participant_id','date','age','sex','language','duration_sec','mig_score','mig_likely','psqi_global','nback_accuracy_pct','nback_dprime','nback_criterion_c','nback_mean_rt_ms','nback_median_rt_ms','qc_exclude_recommended','qc_attention_check_passed','qc_attention_check_2_passed','qc_fast_completion_flag','qc_anticipatory_response_flag','qc_straight_lining_flag','qc_nb_no_response_flag','qc_nb_faded_out_flag','qc_nb_distracted_flag','qc_honeypot_flag','qc_duplicate_suspect_flag'];
 function renderAdminTable(){
   const wrap=document.getElementById('admin-tbl-wrap');
   if(!wrap)return;
@@ -2374,9 +2471,21 @@ function renderAdminTable(){
       if(k==='qc_fast_completion_flag')return `<td>${v?'⚡ '+(LANG==='en'?'Fast':LANG==='ru'?'Быстро':'Tez'):'✅'}</td>`;
       if(k==='qc_anticipatory_response_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Anticipatory':LANG==='ru'?'Опережающие':'Erta bosilgan'):'✅'}</td>`;
       if(k==='qc_straight_lining_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Straight-lined':LANG==='ru'?'Одинаковые':'Bir xil javob'):'✅'}</td>`;
-      if(k==='qc_nb_no_response_flag')return `<td>${v?'🚫 '+(LANG==='en'?'No response':LANG==='ru'?'Нет ответов':'Javob yo\\u2018q'):'✅'}</td>`;
-      if(k==='qc_nb_faded_out_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Faded out':LANG==='ru'?'Затих':'So\\u2018ndi'):'✅'}</td>`;
-      if(k==='qc_nb_distracted_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Tab-switched':LANG==='ru'?'Переключился':'Boshqa oynaga o\\u2018tdi'):'✅'}</td>`;
+      if(k==='qc_nb_no_response_flag')return `<td>${v?'🚫 '+(LANG==='en'?'No response':LANG==='ru'?'Нет ответов':'Javob yo\u2018q'):'✅'}</td>`;
+      if(k==='qc_nb_faded_out_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Faded out':LANG==='ru'?'Затих':'So\u2018ndi'):'✅'}</td>`;
+      if(k==='qc_nb_distracted_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Tab-switched':LANG==='ru'?'Переключился':'Boshqa oynaga o\u2018tdi'):'✅'}</td>`;
+      if(k==='qc_nb_rt_flat_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Flat RT':LANG==='ru'?'Плоское ВР':'Bir xil RT'):'✅'}</td>`;
+      if(k==='qc_honeypot_flag')return `<td>${v?'🤖 '+(LANG==='en'?'BOT':LANG==='ru'?'БОТ':'BOT'):'✅'}</td>`;
+      if(k==='qc_instant_click_flag')return `<td>${v?'⚡ '+(LANG==='en'?'Instant click':LANG==='ru'?'Мгновенный клик':'Zudlik bilan bosildi'):'✅'}</td>`;
+      if(k==='qc_duplicate_suspect_flag')return `<td>${v?'👥 '+(LANG==='en'?'Possible repeat':LANG==='ru'?'Возможен повтор':"Ehtimol qayta"):'✅'}</td>`;
+      if(k==='qc_attention_check_2_passed')return `<td>${v?'✅':'⚠️ '+(LANG==='en'?'Failed':LANG==='ru'?'Не пройдено':'Xato')}</td>`;
+      if(k==='qc_honesty_self_report'){
+        const lbl=v==='careful'?(LANG==='en'?'Careful':LANG==='ru'?'Внимательно':'Diqqat bilan')
+          :v==='rushed'?(LANG==='en'?'⚠️ Rushed':LANG==='ru'?'⚠️ Торопился':'⚠️ Shoshildi')
+          :v==='prefer_not'?(LANG==='en'?'Declined':LANG==='ru'?'Отказался':'Bildirmadi')
+          :'—';
+        return `<td>${lbl}</td>`;
+      }
       if(k==='qc_exclude_recommended')return `<td>${v?'🚫 '+(LANG==='en'?'Review':LANG==='ru'?'Проверить':'Tekshirish'):'✅ '+(LANG==='en'?'OK':'OK')}</td>`;
       return `<td>${esc(v)}</td>`;
     }).join('');
@@ -2502,6 +2611,7 @@ function flattenRow(r){
     nback_target_ratio:r.nback?.targetRatio,
     nback_response_rate:r.nback?.responseRate,
     qc_attention_check_passed:r.qc?.attnPass,
+    qc_attention_check_2_passed:r.qc?.attnPass2,
     qc_fast_completion_flag:r.qc?.fast,
     qc_anticipatory_response_flag:r.qc?.anticipatory,
     qc_straight_lining_flag:r.qc?.straightLine,
@@ -2510,8 +2620,15 @@ function flattenRow(r){
     qc_nb_faded_out_flag:r.qc?.nbFadedOut,
     qc_nb_over_response_flag:r.qc?.nbOverResponse,
     qc_nb_distracted_flag:r.qc?.nbDistracted,
+    qc_nb_rt_flat_flag:r.qc?.nbRTFlat,
     qc_nb_blur_count:r.qc?.nbBlurCount,
     qc_nb_blur_ms:r.qc?.nbBlurMs,
+    qc_honeypot_flag:r.qc?.honeypotTripped,
+    qc_instant_click_flag:r.qc?.instantFirstClick,
+    qc_first_interaction_ms:r.qc?.firstInteractionMs,
+    qc_duplicate_suspect_flag:r.qc?.duplicateSuspect,
+    qc_ip_hash:r.qc?.ipHash,
+    qc_honesty_self_report:r.qc?.honestySelfReport,
     qc_fatigue_rating:r.qc?.fatigue,
     qc_exclude_recommended:r.qc?.excludeRecommended
   };
@@ -2557,6 +2674,7 @@ const CODEBOOK=[
   {Variable:'nback_correct_rejections',Description:'Count of non-matches correctly left unpressed',Range:'count'},
   {Variable:'nback_response_rate',Description:'Fraction of all n-back trials (targets + non-targets) the participant pressed the button on, regardless of whether it was correct. Very low (~0) suggests disengagement; very high (~1) suggests indiscriminate button-mashing',Range:'0\u20131'},
   {Variable:'qc_attention_check_passed',Description:'Data-quality flag: TRUE if the participant correctly answered the instructed-response item ("select Yes here"). FALSE/blank suggests low attention \u2014 consider reviewing before including in analysis',Range:'TRUE / FALSE'},
+  {Variable:'qc_attention_check_2_passed',Description:'Data-quality flag: TRUE if the participant correctly answered a SECOND, differently-worded instructed-response item (select \u201cNo\u201d here) placed earlier in the survey, away from the first one \u2014 catches attention that faded partway through rather than only checking the very end',Range:'TRUE / FALSE'},
   {Variable:'qc_fast_completion_flag',Description:'Data-quality flag: TRUE if total duration was under 3 minutes, which is implausibly fast for this ~15\u201320 minute survey and likely indicates a rushed/careless response',Range:'TRUE / FALSE'},
   {Variable:'qc_anticipatory_response_flag',Description:'Data-quality flag: TRUE if 2+ button presses on the n-back task were under 150ms, which is faster than a genuine human reaction to a stimulus \u2014 suggests button-mashing rather than real responses',Range:'TRUE / FALSE'},
   {Variable:'qc_straight_lining_flag',Description:'Data-quality flag: TRUE if the participant gave the exact same answer to all 9 PSQI sleep-disturbance sub-items \u2014 a classic satisficing/inattentive-responding pattern',Range:'TRUE / FALSE'},
@@ -2565,8 +2683,15 @@ const CODEBOOK=[
   {Variable:'qc_nb_faded_out_flag',Description:'Data-quality flag: TRUE if the participant responded during the first half of the n-back test but made zero responses in the entire second half \u2014 suggests attention dropped out partway through rather than reflecting genuine ability the whole way',Range:'TRUE / FALSE'},
   {Variable:'qc_nb_over_response_flag',Description:'Data-quality flag: TRUE if the participant pressed the button on ~85% or more of all n-back trials \u2014 suggests indiscriminate button-mashing rather than actually judging each letter',Range:'TRUE / FALSE'},
   {Variable:'qc_nb_distracted_flag',Description:'Data-quality flag: TRUE if the browser tab/window lost focus for 2+ seconds total during the real n-back test (e.g. switched to another tab or app) \u2014 see qc_nb_blur_count / qc_nb_blur_ms for detail',Range:'TRUE / FALSE'},
+  {Variable:'qc_nb_rt_flat_flag',Description:'Data-quality flag: TRUE if the participant had 4+ correct n-back hits and the reaction times across those hits had almost no variance (standard deviation under 20ms) \u2014 real human reflexes essentially never land that consistently; suggests scripted/robotic responses rather than genuine ones',Range:'TRUE / FALSE'},
   {Variable:'qc_nb_blur_count',Description:'Number of times the browser tab/window lost focus during the real n-back test',Range:'count'},
   {Variable:'qc_nb_blur_ms',Description:'Total milliseconds the browser tab/window was unfocused during the real n-back test',Range:'milliseconds'},
+  {Variable:'qc_honeypot_flag',Description:'Data-quality flag: TRUE if a hidden form field \u2014 invisible and unreachable for a real person, but often auto-filled by a script that blindly fills every input on the page \u2014 was filled in. Near-certain sign of a bot/automated submission rather than a real participant',Range:'TRUE / FALSE'},
+  {Variable:'qc_instant_click_flag',Description:'Data-quality flag: TRUE if the very first click on the page landed under 400ms after the page loaded \u2014 not enough time for a human to have read anything first; suggests a script driving the page rather than a person',Range:'TRUE / FALSE'},
+  {Variable:'qc_first_interaction_ms',Description:'Milliseconds between page load and the participant first click anywhere on the page. Very low values pair with qc_instant_click_flag; kept as a raw number here for review',Range:'milliseconds'},
+  {Variable:'qc_duplicate_suspect_flag',Description:'Data-quality flag: TRUE if this submission\u2019s hashed IP address AND device fingerprint (see qc_ip_hash) both match another row in the dataset under a different participant ID \u2014 suggests the same person/device submitted more than once (e.g. retook the survey in a new private/incognito window). Matching IP alone does NOT trigger this, since many genuine participants can share a network (e.g. a classroom) \u2014 only fires when both signals agree',Range:'TRUE / FALSE'},
+  {Variable:'qc_ip_hash',Description:'A one-way salted hash of the submitting IP address, computed server-side. The raw IP is never stored anywhere \u2014 this hash only exists so qc_duplicate_suspect_flag can be computed, and so you can manually spot-check clusters of submissions from the same network if needed',Range:'hex string'},
+  {Variable:'qc_honesty_self_report',Description:'Self-reported at the very end, after the participant already saw their results and their response was already saved (so there is no incentive to answer dishonestly to change a score): careful = reported paying full attention throughout; rushed = self-reported rushing or clicking through part of the survey (this also sets qc_exclude_recommended); prefer_not = declined to answer; blank = never reached/answered this question',Range:'careful / rushed / prefer_not / blank'},
   {Variable:'qc_fatigue_rating',Description:'Self-reported task difficulty/fatigue immediately after the n-back task, 1=very easy to 5=very hard. Useful for distinguishing low performance due to genuine difficulty vs. disengagement',Range:'1\u20135 or blank'},
   {Variable:'qc_exclude_recommended',Description:'Composite flag: TRUE if ANY quality-control check failed (fast completion, anticipatory responses, straight-lining, time inconsistency, failed attention check, or any n-back engagement check: no-response, faded-out, over-response, tab-switch/distracted). Not an automatic exclusion \u2014 a flag for manual review before finalizing your analysis sample',Range:'TRUE / FALSE'},
   {Variable:'app_version',Description:'Version of the survey app the response was collected on \u2014 check this if you change questions or scoring mid-collection, so you can separate data collected under different versions',Range:'semver text'},
