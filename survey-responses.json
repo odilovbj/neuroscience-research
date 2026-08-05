@@ -2375,5 +2375,93 @@
       "fatigue": 2,
       "excludeRecommended": false
     }
+  },
+  {
+    "pid": "participant31",
+    "date": "2026-08-05T07:53:14.549Z",
+    "lang": "uz",
+    "dur": 19247,
+    "localHour": 12,
+    "appVersion": "1.2.0",
+    "preview": false,
+    "meta": {
+      "device": "desktop",
+      "browser": "chrome",
+      "screenW": 1280,
+      "screenH": 720,
+      "viewportW": 1280,
+      "tz": "Asia/Tashkent"
+    },
+    "demo": {
+      "age": "16",
+      "sex": "m",
+      "grade": "10",
+      "ha": "yoq",
+      "ctx_sleep": "5to7",
+      "ctx_caffeine": "ha",
+      "ctx_meds": "yoq"
+    },
+    "migraine": {
+      "q0": "yoq",
+      "q1": "yoq",
+      "q2": "ha",
+      "freq": "0",
+      "score": 1,
+      "likely": false,
+      "recency": "1to2",
+      "aura": "sometimes",
+      "anx1": 1,
+      "anx2": 1,
+      "anx3": 1,
+      "anx4": 2,
+      "anxietyTotal": 5
+    },
+    "psqi": {
+      "global": 11,
+      "q1": "02:00",
+      "q2": 2,
+      "q3": "07:00",
+      "q4": 1,
+      "5a": 1,
+      "5b": 3,
+      "5c": 1,
+      "5d": 3,
+      "5e": 3,
+      "5f": 1,
+      "5g": 3,
+      "5h": 3,
+      "5i": 1,
+      "p6": 1,
+      "p7": 1,
+      "p8": 3,
+      "p9": 2
+    },
+    "nback": {
+      "acc": 64,
+      "hitAcc": 0,
+      "dprime": -0.233,
+      "bias": 1.267,
+      "meanRT": null,
+      "medRT": null,
+      "hits": 0,
+      "misses": 6,
+      "fa": 2,
+      "cr": 14,
+      "nTargets": 6,
+      "nNonTargets": 16,
+      "targetRatio": 0.27
+    },
+    "qc": {
+      "attnPass": true,
+      "attnAnswered": true,
+      "fast": false,
+      "anticipatory": false,
+      "straightLine": false,
+      "timeInconsistent": false,
+      "fatigue": 3,
+      "excludeRecommended": false,
+      "ipHash": "77aad1027744f53d",
+      "duplicateSuspect": false
+    }
   }
 ]
