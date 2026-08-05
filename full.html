@@ -71,6 +71,22 @@ body{font-family:var(--font-body);color:var(--text);background:var(--bg);min-hei
 /* ── LAYOUT ── */
 #app{position:relative;z-index:10;width:100%;max-width:640px;margin:0 auto;padding:58px 14px 90px;overflow-anchor:none;}
 
+/* ── RESPONSIVE WIDTH: laptop/desktop gets a roomier survey box; phones are untouched ──
+   Keyed off viewport width rather than user-agent sniffing on purpose — that's what stays
+   correct if someone resizes a browser window, uses a tablet in landscape as a laptop
+   replacement, or has a spoofed/unusual UA string, and it's what actually determines how
+   much screen space is available to lay the box out in. Everything below 860px (i.e. every
+   real phone, and narrow tablets/windows) renders exactly as before — nothing here changes
+   that tier at all. */
+@media(min-width:860px){
+  #app{max-width:760px;}
+  .card{padding:34px 42px;}
+}
+@media(min-width:1180px){
+  #app{max-width:880px;}
+  .card{padding:38px 52px;}
+}
+
 /* ── PROGRESS ── */
 .pbar-shell{position:fixed;top:0;left:0;right:0;z-index:300;height:4px;background:var(--card);}
 .pbar{height:100%;background:var(--accent);transition:width .5s ease;}
@@ -1445,6 +1461,38 @@ const NB_PRACTICE_TOTAL=8,NB_PRACTICE_SHOW=2800,NB_PRACTICE_BLANK=350;
 let nbSeq=[],nbIdx=0,nbResponded=false,nbStart=0,nbTimer=null,nbRAF=null;
 let nbMode='practice',nbPracticeCorrect=0;
 
+// ── N-BACK ENGAGEMENT TRACKING ──────────────────────────────────────────
+// The concern this solves: d-prime alone can't tell "genuinely low working memory"
+// apart from "wasn't paying attention" — someone who presses nothing the whole way
+// through still lands near the low end of the d' scale instead of getting flagged as
+// invalid. Rather than touching the task itself (same 2-back rule, same timing, same
+// sequence generation as before), this instruments the *real* test run only, using
+// signals a script can't fake by accident and a genuinely-engaged participant will
+// never trip:
+//   1. nbNoResponse   — literally zero button presses across the whole real test.
+//   2. nbFadedOut     — responded during the first half, then went completely silent
+//                       for the second half (checked out partway rather than at ability).
+//   3. nbOverResponse — pressed on ~85%+ of trials, i.e. mashing the button regardless
+//                       of the stimulus rather than actually discriminating matches.
+//   4. nbDistracted   — the browser tab/window lost focus for a meaningful stretch
+//                       during the real test (switched apps/tabs instead of attending).
+// These feed into the same qc.excludeRecommended composite the rest of the survey
+// already uses — a flag for review, not a silent auto-exclusion.
+let nbTrackingActive=false,nbBlurCount=0,nbBlurMs=0,nbBlurSince=null;
+function nbMarkUnfocused(){
+  if(!nbTrackingActive||nbBlurSince)return;
+  nbBlurSince=Date.now();nbBlurCount++;
+}
+function nbMarkFocused(){
+  if(!nbTrackingActive||!nbBlurSince)return;
+  nbBlurMs+=Date.now()-nbBlurSince;nbBlurSince=null;
+}
+document.addEventListener('visibilitychange',()=>{document.hidden?nbMarkUnfocused():nbMarkFocused();});
+window.addEventListener('blur',nbMarkUnfocused);
+window.addEventListener('focus',nbMarkFocused);
+function nbStartTracking(){nbTrackingActive=true;nbBlurCount=0;nbBlurMs=0;nbBlurSince=null;}
+function nbStopTracking(){nbMarkFocused();nbTrackingActive=false;}
+
 function genSeq(n){
   const s=[];
   for(let i=0;i<n;i++){
@@ -1471,6 +1519,7 @@ function startNback(){
 function startRealNback(){
   nbMode='real';
   nbSeq=genSeq(NB_TOTAL);nbIdx=0;S.nback.trials=[];
+  nbStartTracking();
   s7();
   setTimeout(runTrial,700);
 }
@@ -1716,6 +1765,7 @@ function timeInBedHours(bedtime,waketime){
 let SUBMITTING_NBACK=false;
 function showFatiguePrompt(){
   stopTimerAnim();
+  nbStopTracking(); // real N-back segment is over — stop counting focus loss from here on
   SUBMITTING_NBACK=false;
   const labels=LANG==='en'?['Very easy','Easy','Okay','Hard','Very hard']:LANG==='ru'?['Очень легко','Легко','Нормально','Сложно','Очень сложно']:['Juda oson','Oson','O\u2018rtacha',"Qiyin","Juda qiyin"];
   app.innerHTML=`<div class="screen active"><div class="card" style="text-align:center;"><div class="card-inner">
@@ -1757,6 +1807,17 @@ async function finishNback(fatigue){
   const timeInconsistent=(tib!==null&&durBandMin!==null)?(tib<durBandMin-0.75):false; // can't have slept more than time in bed
   const nT=S.nback.trials.filter(x=>x.isM).length,nNT=S.nback.trials.filter(x=>!x.isM).length;
   const targetRatio=S.nback.trials.length?Math.round((nT/S.nback.trials.length)*100)/100:null;
+  // Engagement checks — see the block above genSeq() for why these exist and what each one means.
+  const totalTrialsN=S.nback.trials.length;
+  const respondedTotal=stats.hits+stats.fa;
+  const responseRate=totalTrialsN?Math.round((respondedTotal/totalTrialsN)*1000)/1000:null;
+  const nbNoResponse=totalTrialsN>0&&respondedTotal===0;
+  const half=Math.floor(totalTrialsN/2);
+  const firstHalfResp=S.nback.trials.slice(0,half).filter(x=>x.responded).length;
+  const secondHalfResp=S.nback.trials.slice(half).filter(x=>x.responded).length;
+  const nbFadedOut=half>=4&&firstHalfResp>=2&&secondHalfResp===0; // engaged early, then went totally silent
+  const nbOverResponse=totalTrialsN>0&&(respondedTotal/totalTrialsN)>=0.85; // pressing almost everything, matches or not
+  const nbDistracted=nbBlurCount>0&&nbBlurMs>=2000; // tab/window unfocused for 2s+ during the real test
   const qc={
     attnPass:!!(S.qc&&S.qc.attnPass),
     attnAnswered:!!(S.qc&&S.qc.attnAnswered),
@@ -1764,9 +1825,16 @@ async function finishNback(fatigue){
     anticipatory:stats.anticipatory>=2, // 2+ sub-150ms presses \u2014 near-impossible as genuine reactions
     straightLine, // identical answer on all 9 PSQI disturbance sub-items \u2014 classic satisficing pattern
     timeInconsistent, // reported more sleep than time spent in bed \u2014 logically impossible
+    nbNoResponse, // zero button presses across the entire real n-back test
+    nbFadedOut, // responded early on, then went silent for the whole second half
+    nbOverResponse, // pressed on ~85%+ of trials \u2014 button-mashing, not discriminating
+    nbDistracted, // tab/window lost focus for 2s+ during the real n-back test
+    nbBlurCount, // how many times focus was lost during the real n-back test
+    nbBlurMs, // total ms unfocused during the real n-back test
     fatigue:fatigue??null // 1\u20135 self-reported task difficulty/fatigue
   };
-  qc.excludeRecommended=qc.fast||qc.anticipatory||qc.straightLine||qc.timeInconsistent||!qc.attnPass;
+  qc.excludeRecommended=qc.fast||qc.anticipatory||qc.straightLine||qc.timeInconsistent||!qc.attnPass
+    ||qc.nbNoResponse||qc.nbFadedOut||qc.nbOverResponse||qc.nbDistracted;
   if(PREVIEW_MODE){
     S.pid='PREVIEW-'+Math.random().toString(36).slice(2,7);
   }
@@ -1778,7 +1846,7 @@ async function finishNback(fatigue){
     meta:getSessionMeta(),
     demo:S.demo,migraine:S.migraine,
     psqi:{global:S.psqi.global,...S.psqi},
-    nback:{acc:stats.acc,hitAcc:stats.hitAcc,dprime:stats.dprime,bias:stats.bias,meanRT:stats.meanRT,medRT:stats.medRT,hits:stats.hits,misses:stats.misses,fa:stats.fa,cr:stats.cr,nTargets:nT,nNonTargets:nNT,targetRatio},
+    nback:{acc:stats.acc,hitAcc:stats.hitAcc,dprime:stats.dprime,bias:stats.bias,meanRT:stats.meanRT,medRT:stats.medRT,hits:stats.hits,misses:stats.misses,fa:stats.fa,cr:stats.cr,nTargets:nT,nNonTargets:nNT,targetRatio,responseRate},
     qc
   };
   if(PREVIEW_MODE){
@@ -2014,7 +2082,10 @@ const ADMIN_LABELS={
   nback_dprime:'D-Prime (d\u2032)',nback_criterion_c:'Criterion (c)',
   nback_mean_rt_ms:'Mean Reaction Time (ms)',nback_median_rt_ms:'Median Reaction Time (ms)',
   nback_hits:'Hits',nback_misses:'Misses',nback_false_alarms:'False Alarms',nback_correct_rejections:'Correct Rejections',
-  qc_attention_check_passed:'Attention Check Passed',qc_fast_completion_flag:'Fast-Completion Flag',qc_anticipatory_response_flag:'Anticipatory-Response Flag',qc_straight_lining_flag:'Straight-Lining Flag',qc_time_inconsistent_flag:'Time-Inconsistency Flag',qc_exclude_recommended:'Exclude Recommended'
+  nback_response_rate:'N-back Response Rate',
+  qc_attention_check_passed:'Attention Check Passed',qc_fast_completion_flag:'Fast-Completion Flag',qc_anticipatory_response_flag:'Anticipatory-Response Flag',qc_straight_lining_flag:'Straight-Lining Flag',qc_time_inconsistent_flag:'Time-Inconsistency Flag',
+  qc_nb_no_response_flag:'N-back No-Response Flag',qc_nb_faded_out_flag:'N-back Faded-Out Flag',qc_nb_over_response_flag:'N-back Over-Response Flag',qc_nb_distracted_flag:'N-back Tab-Switch Flag',
+  qc_exclude_recommended:'Exclude Recommended'
 };
 const ADMIN_PW_HASH='592bf2862b79344c231ffe1597e851f62b0fa57279ab04de0ce200513304e077'; // SHA-256, offline fallback only \u2014 real check happens server-side when the collector is running
 async function sha256Hex(str){
@@ -2285,7 +2356,7 @@ function renderScatterSVG(rows){
     <circle cx="${W-90}" cy="14" r="4" fill="var(--accent)"/><text x="${W-82}" y="17" font-size="8.5" fill="var(--muted)" font-family="Inter,sans-serif">${LANG==='en'?'migraine likely':'migren ehtimoli'}</text>
   </svg>`;
 }
-const ADMIN_SUMMARY_KEYS=['participant_id','date','age','sex','language','duration_sec','mig_score','mig_likely','psqi_global','nback_accuracy_pct','nback_dprime','nback_criterion_c','nback_mean_rt_ms','nback_median_rt_ms','qc_exclude_recommended','qc_attention_check_passed','qc_fast_completion_flag','qc_anticipatory_response_flag','qc_straight_lining_flag'];
+const ADMIN_SUMMARY_KEYS=['participant_id','date','age','sex','language','duration_sec','mig_score','mig_likely','psqi_global','nback_accuracy_pct','nback_dprime','nback_criterion_c','nback_mean_rt_ms','nback_median_rt_ms','qc_exclude_recommended','qc_attention_check_passed','qc_fast_completion_flag','qc_anticipatory_response_flag','qc_straight_lining_flag','qc_nb_no_response_flag','qc_nb_faded_out_flag','qc_nb_distracted_flag'];
 function renderAdminTable(){
   const wrap=document.getElementById('admin-tbl-wrap');
   if(!wrap)return;
@@ -2303,6 +2374,9 @@ function renderAdminTable(){
       if(k==='qc_fast_completion_flag')return `<td>${v?'⚡ '+(LANG==='en'?'Fast':LANG==='ru'?'Быстро':'Tez'):'✅'}</td>`;
       if(k==='qc_anticipatory_response_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Anticipatory':LANG==='ru'?'Опережающие':'Erta bosilgan'):'✅'}</td>`;
       if(k==='qc_straight_lining_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Straight-lined':LANG==='ru'?'Одинаковые':'Bir xil javob'):'✅'}</td>`;
+      if(k==='qc_nb_no_response_flag')return `<td>${v?'🚫 '+(LANG==='en'?'No response':LANG==='ru'?'Нет ответов':'Javob yo\\u2018q'):'✅'}</td>`;
+      if(k==='qc_nb_faded_out_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Faded out':LANG==='ru'?'Затих':'So\\u2018ndi'):'✅'}</td>`;
+      if(k==='qc_nb_distracted_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Tab-switched':LANG==='ru'?'Переключился':'Boshqa oynaga o\\u2018tdi'):'✅'}</td>`;
       if(k==='qc_exclude_recommended')return `<td>${v?'🚫 '+(LANG==='en'?'Review':LANG==='ru'?'Проверить':'Tekshirish'):'✅ '+(LANG==='en'?'OK':'OK')}</td>`;
       return `<td>${esc(v)}</td>`;
     }).join('');
@@ -2426,11 +2500,18 @@ function flattenRow(r){
     nback_n_targets:r.nback?.nTargets,
     nback_n_nontargets:r.nback?.nNonTargets,
     nback_target_ratio:r.nback?.targetRatio,
+    nback_response_rate:r.nback?.responseRate,
     qc_attention_check_passed:r.qc?.attnPass,
     qc_fast_completion_flag:r.qc?.fast,
     qc_anticipatory_response_flag:r.qc?.anticipatory,
     qc_straight_lining_flag:r.qc?.straightLine,
     qc_time_inconsistent_flag:r.qc?.timeInconsistent,
+    qc_nb_no_response_flag:r.qc?.nbNoResponse,
+    qc_nb_faded_out_flag:r.qc?.nbFadedOut,
+    qc_nb_over_response_flag:r.qc?.nbOverResponse,
+    qc_nb_distracted_flag:r.qc?.nbDistracted,
+    qc_nb_blur_count:r.qc?.nbBlurCount,
+    qc_nb_blur_ms:r.qc?.nbBlurMs,
     qc_fatigue_rating:r.qc?.fatigue,
     qc_exclude_recommended:r.qc?.excludeRecommended
   };
@@ -2474,13 +2555,20 @@ const CODEBOOK=[
   {Variable:'nback_misses',Description:'Count of 2-back matches the participant failed to press for',Range:'count'},
   {Variable:'nback_false_alarms',Description:'Count of non-matches the participant incorrectly pressed for',Range:'count'},
   {Variable:'nback_correct_rejections',Description:'Count of non-matches correctly left unpressed',Range:'count'},
+  {Variable:'nback_response_rate',Description:'Fraction of all n-back trials (targets + non-targets) the participant pressed the button on, regardless of whether it was correct. Very low (~0) suggests disengagement; very high (~1) suggests indiscriminate button-mashing',Range:'0\u20131'},
   {Variable:'qc_attention_check_passed',Description:'Data-quality flag: TRUE if the participant correctly answered the instructed-response item ("select Yes here"). FALSE/blank suggests low attention \u2014 consider reviewing before including in analysis',Range:'TRUE / FALSE'},
   {Variable:'qc_fast_completion_flag',Description:'Data-quality flag: TRUE if total duration was under 3 minutes, which is implausibly fast for this ~15\u201320 minute survey and likely indicates a rushed/careless response',Range:'TRUE / FALSE'},
   {Variable:'qc_anticipatory_response_flag',Description:'Data-quality flag: TRUE if 2+ button presses on the n-back task were under 150ms, which is faster than a genuine human reaction to a stimulus \u2014 suggests button-mashing rather than real responses',Range:'TRUE / FALSE'},
   {Variable:'qc_straight_lining_flag',Description:'Data-quality flag: TRUE if the participant gave the exact same answer to all 9 PSQI sleep-disturbance sub-items \u2014 a classic satisficing/inattentive-responding pattern',Range:'TRUE / FALSE'},
   {Variable:'qc_time_inconsistent_flag',Description:'Data-quality flag: TRUE if reported sleep duration (psqi_q4_duration band) is logically impossible given time actually spent in bed (psqi_q3_waketime minus psqi_q1_bedtime) \u2014 e.g. claiming 7+ hours of sleep from only 90 minutes in bed',Range:'TRUE / FALSE'},
+  {Variable:'qc_nb_no_response_flag',Description:'Data-quality flag: TRUE if the participant made zero button presses across the entire real n-back test \u2014 the classic case a raw d\u2032 score can mask, since a fully-blank run still lands near the low end of the d\u2032 scale rather than reading as invalid. This flag catches it directly',Range:'TRUE / FALSE'},
+  {Variable:'qc_nb_faded_out_flag',Description:'Data-quality flag: TRUE if the participant responded during the first half of the n-back test but made zero responses in the entire second half \u2014 suggests attention dropped out partway through rather than reflecting genuine ability the whole way',Range:'TRUE / FALSE'},
+  {Variable:'qc_nb_over_response_flag',Description:'Data-quality flag: TRUE if the participant pressed the button on ~85% or more of all n-back trials \u2014 suggests indiscriminate button-mashing rather than actually judging each letter',Range:'TRUE / FALSE'},
+  {Variable:'qc_nb_distracted_flag',Description:'Data-quality flag: TRUE if the browser tab/window lost focus for 2+ seconds total during the real n-back test (e.g. switched to another tab or app) \u2014 see qc_nb_blur_count / qc_nb_blur_ms for detail',Range:'TRUE / FALSE'},
+  {Variable:'qc_nb_blur_count',Description:'Number of times the browser tab/window lost focus during the real n-back test',Range:'count'},
+  {Variable:'qc_nb_blur_ms',Description:'Total milliseconds the browser tab/window was unfocused during the real n-back test',Range:'milliseconds'},
   {Variable:'qc_fatigue_rating',Description:'Self-reported task difficulty/fatigue immediately after the n-back task, 1=very easy to 5=very hard. Useful for distinguishing low performance due to genuine difficulty vs. disengagement',Range:'1\u20135 or blank'},
-  {Variable:'qc_exclude_recommended',Description:'Composite flag: TRUE if ANY quality-control check failed (fast completion, anticipatory responses, straight-lining, time inconsistency, or failed attention check). Not an automatic exclusion \u2014 a flag for manual review before finalizing your analysis sample',Range:'TRUE / FALSE'},
+  {Variable:'qc_exclude_recommended',Description:'Composite flag: TRUE if ANY quality-control check failed (fast completion, anticipatory responses, straight-lining, time inconsistency, failed attention check, or any n-back engagement check: no-response, faded-out, over-response, tab-switch/distracted). Not an automatic exclusion \u2014 a flag for manual review before finalizing your analysis sample',Range:'TRUE / FALSE'},
   {Variable:'app_version',Description:'Version of the survey app the response was collected on \u2014 check this if you change questions or scoring mid-collection, so you can separate data collected under different versions',Range:'semver text'},
   {Variable:'local_hour',Description:'Participant\u2019s local hour of day (0\u201323) when they completed the survey \u2014 useful for checking circadian/time-of-day effects on sleep and working-memory measures',Range:'0\u201323'},
   {Variable:'preview_row',Description:'TRUE if this row was collected in researcher preview mode (?preview=1) and should be excluded from any real analysis \u2014 in practice preview rows are not saved to the shared dataset at all, this column exists only as a safety net',Range:'TRUE / FALSE'},
