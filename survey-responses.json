@@ -2680,6 +2680,7 @@
       "firstInteractionMs": 1975,
       "fatigue": 4,
       "excludeRecommended": true,
+      "honestySelfReport": "careful",
       "ipHash": "95e1c619ef14fb89",
       "duplicateSuspect": false
     }
