@@ -3296,6 +3296,7 @@
       "firstInteractionMs": 86,
       "fatigue": 5,
       "excludeRecommended": true,
+      "honestySelfReport": "rushed",
       "ipHash": "3a218bdc60923dd3",
       "duplicateSuspect": false
     }
