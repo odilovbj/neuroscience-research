@@ -3399,6 +3399,7 @@
       "firstInteractionMs": 8340,
       "fatigue": 1,
       "excludeRecommended": false,
+      "honestySelfReport": "careful",
       "ipHash": "2b334bf85c2bbd95",
       "duplicateSuspect": false
     }
