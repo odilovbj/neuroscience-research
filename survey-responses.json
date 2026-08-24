@@ -3914,7 +3914,8 @@
       "firstInteractionMs": 9158,
       "fatigue": 1,
       "excludeRecommended": true,
-      "ipHash": "42227df250849e04",
+      "honestySelfReport": "careful",
+      "ipHash": "e60f5ed5fb5f3d7a",
       "duplicateSuspect": false
     }
   }
