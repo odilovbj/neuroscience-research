@@ -4017,6 +4017,7 @@
       "firstInteractionMs": 4005,
       "fatigue": 3,
       "excludeRecommended": false,
+      "honestySelfReport": "careful",
       "ipHash": "1c350a43d00a3573",
       "duplicateSuspect": false
     }
