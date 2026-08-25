@@ -4223,6 +4223,7 @@
       "firstInteractionMs": 23676,
       "fatigue": 4,
       "excludeRecommended": false,
+      "honestySelfReport": "careful",
       "ipHash": "614b4b54ba56c467",
       "duplicateSuspect": false
     }
