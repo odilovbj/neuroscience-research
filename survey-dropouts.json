@@ -16,5 +16,11 @@
     "step": 7,
     "reason": "closed",
     "durSec": 689
+  },
+  {
+    "date": "2026-08-25T10:37:41.423Z",
+    "step": 7,
+    "reason": "closed",
+    "durSec": 744
   }
 ]
