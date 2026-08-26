@@ -4429,6 +4429,7 @@
       "firstInteractionMs": 3146,
       "fatigue": 3,
       "excludeRecommended": false,
+      "honestySelfReport": "careful",
       "ipHash": "d2896203db50a36a",
       "duplicateSuspect": false
     }
