@@ -5046,7 +5046,8 @@
       "instantFirstClick": false,
       "firstInteractionMs": 6121,
       "fatigue": 4,
-      "excludeRecommended": false,
+      "excludeRecommended": true,
+      "honestySelfReport": "rushed",
       "ipHash": "3c80c3d108053adb",
       "duplicateSuspect": false
     }
