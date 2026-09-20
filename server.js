@@ -1,7 +1,8 @@
 // ============================================================================
 // Migraine, Sleep & Memory Survey — Collector Server
 // ============================================================================
-// Serves full.html and collects survey responses to a local JSON file.
+// Serves the English-only survey page (survey_english.html by default) and
+// collects survey responses to a local JSON file.
 // On Render's free tier (and any host without a persistent disk), local files
 // are wiped on every restart/redeploy/spin-down — so every write here is also
 // pushed to a GitHub repo, and pulled back down on boot. See the GITHUB CONFIG
@@ -18,7 +19,10 @@ const { URL } = require("url");
 // ── CORE CONFIG ─────────────────────────────────────────────────────────────
 const PORT = Number(process.env.PORT || 8787);
 const ROOT = __dirname;
-const HTML_FILE = path.join(ROOT, "full.html");
+// The survey page this server hands out. Defaults to the English-only build; set the
+// HTML_FILE env var if you rename the file. path.basename() keeps it inside this folder.
+const HTML_NAME = path.basename(process.env.HTML_FILE || "survey_english.html");
+const HTML_FILE = path.join(ROOT, HTML_NAME);
 const DATA_FILE = path.join(ROOT, "survey-responses.json");
 const COUNTER_FILE = path.join(ROOT, "participant-counter.json");
 const STARTS_FILE = path.join(ROOT, "survey-starts.json");
@@ -87,8 +91,8 @@ async function githubPutFile(relPath, content) {
     let res = await fetch(url, { method: "PUT", headers: ghHeaders(), body: JSON.stringify(body) });
 
     // Retry a few times on a sha conflict (e.g. someone edited the file on GitHub directly).
-    // Concurrent requests from this app itself no longer race here \u2014 they're serialized by
-    // withLock() before ever reaching this function \u2014 so this loop only ever has to handle
+    // Concurrent requests from this app itself no longer race here — they're serialized by
+    // withLock() before ever reaching this function — so this loop only ever has to handle
     // conflicts coming from outside this process.
     for (let attempt = 0; attempt < 3 && (res.status === 409 || res.status === 422); attempt++) {
       const fresh = await fetch(url + `?ref=${encodeURIComponent(GH_BRANCH)}`, { headers: ghHeaders() });
@@ -230,7 +234,7 @@ async function writeRows(rows) {
   // Wait for the GitHub push to actually settle (succeed or fail) before returning, instead of
   // firing it and moving on. This closes the window where a server restart could land in the
   // middle of an in-flight upload and lose that specific save. The local write above already
-  // happened and is never blocked by this \u2014 GitHub failing here just means slower confirmation,
+  // happened and is never blocked by this — GitHub failing here just means slower confirmation,
   // never a failed save for the participant.
   await githubPutFile("survey-responses.json", content).catch(() => {});
 }
@@ -238,17 +242,17 @@ async function writeRows(rows) {
 // ── SERVER-SIDE QUALITY-CONTROL CHECKS ───────────────────────────────────────
 // Two checks the client can't reliably do for itself, because both require seeing
 // every other row on file, which only the server has:
-//   1. duplicateSuspect \u2014 same hashed IP AND same client fingerprint as an existing
-//      row \u2014 flags likely repeat-participation (e.g. someone retaking the survey in
+//   1. duplicateSuspect — same hashed IP AND same client fingerprint as an existing
+//      row — flags likely repeat-participation (e.g. someone retaking the survey in
 //      a new incognito window after localStorage blocked a normal retry). Requires
 //      BOTH to match, not just IP alone, since many genuine participants can share
-//      an IP (a classroom or lab on one wifi network) \u2014 that alone isn't suspicious.
-//   2. Content-based de-dup for brand-new (pid-less) submissions \u2014 a network retry
+//      an IP (a classroom or lab on one wifi network) — that alone isn't suspicious.
+//   2. Content-based de-dup for brand-new (pid-less) submissions — a network retry
 //      after a timeout can cause the *same* "new participant" payload to arrive twice;
 //      without this, that mints two participant IDs for one real person. If an
 //      essentially-identical payload was saved in the last 60s, this reuses that
 //      participant's existing ID instead of creating a second one.
-// Raw IPs are never written to disk \u2014 only a salted one-way hash.
+// Raw IPs are never written to disk — only a salted one-way hash.
 function hashIp(ip) {
   return crypto.createHash("sha256").update(String(ip) + IP_SALT).digest("hex").slice(0, 16);
 }
@@ -258,7 +262,7 @@ function clientIpFromReq(req) {
   return (req.socket && req.socket.remoteAddress) || "";
 }
 function contentFingerprint(row) {
-  // Deliberately excludes pid/date/dur/meta \u2014 those legitimately differ between two
+  // Deliberately excludes pid/date/dur/meta — those legitimately differ between two
   // requests for the very same real submission (retry has a later timestamp, etc).
   try {
     const { pid, participant_id, date, dur, meta, fingerprint, qc, ...rest } = row || {};
@@ -294,7 +298,7 @@ function upsertRow(row, req) {
     const rows = readRows();
     let pid = row.pid || row.participant_id;
     if (!pid) {
-      // Content-dedup backstop \u2014 see the comment above applyServerSideQC for why this exists.
+      // Content-dedup backstop — see the comment above applyServerSideQC for why this exists.
       const fp = contentFingerprint(row);
       const recentDup = fp && rows.find(r => {
         const rDate = Date.parse(r.date || "");
@@ -330,7 +334,7 @@ function deleteRow(identity) {
 }
 
 function peekNextParticipantId() {
-  // Read-only \u2014 tells you what the next ID WOULD be, without reserving or persisting anything.
+  // Read-only — tells you what the next ID WOULD be, without reserving or persisting anything.
   // Safe to call as often as you like (Test Connection, admin refresh, etc.) with zero side effects.
   try {
     if (fs.existsSync(COUNTER_FILE)) {
@@ -343,7 +347,7 @@ function peekNextParticipantId() {
 
 function consumeNextParticipantId() {
   // Actually reserves an ID by incrementing the persisted counter. Only ever call this at the
-  // moment a real response is being saved (inside upsertRow/POST /api/responses) \u2014 never from
+  // moment a real response is being saved (inside upsertRow/POST /api/responses) — never from
   // a diagnostic or read-only check, or the counter jumps every time someone just looks at it.
   // Locked under "counter" so two concurrent submissions can never read-then-write the same
   // "next" value and hand out the same participant ID twice.
@@ -555,7 +559,7 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname.startsWith("/api/exists/") && req.method === "GET") {
     // Privacy-safe: returns only true/false, never the actual response content.
     // Used to auto-unlock someone's one-time-participation block ONLY when their
-    // previously-saved data has genuinely been lost (e.g. a sync outage wiped it) \u2014
+    // previously-saved data has genuinely been lost (e.g. a sync outage wiped it) —
     // if their data is still safely on file, the block correctly stays in place.
     const pid = decodeURIComponent(url.pathname.slice("/api/exists/".length));
     const rows = readRows();
@@ -626,11 +630,18 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/full.html")) {
+  // Serve the survey page at "/", "/index.html", "/<HTML_NAME>", and the old "/full.html"
+  // path (kept as an alias so any existing links or bookmarks keep working).
+  if (req.method === "GET" && (
+    url.pathname === "/" ||
+    url.pathname === "/index.html" ||
+    url.pathname === "/" + HTML_NAME ||
+    url.pathname === "/full.html"
+  )) {
     fs.readFile(HTML_FILE, (err, data) => {
       if (err) {
         res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
-        return res.end("Could not load full.html: " + err.message);
+        return res.end(`Could not load ${HTML_NAME}: ` + err.message);
       }
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(data);
@@ -647,9 +658,14 @@ const server = http.createServer(async (req, res) => {
   await restoreAllFromGitHub();
   await verifyGithubWriteAccess();
 
+  if (!fs.existsSync(HTML_FILE)) {
+    console.log(`WARNING: ${HTML_NAME} was not found next to server.js — the survey page will fail to load until it is added.`);
+  }
+
   server.listen(PORT, "0.0.0.0", () => {
     console.log("═══════════════════════════════════════════════════");
     console.log("Survey collector running");
+    console.log(`Serving: ${HTML_NAME}`);
     console.log(`Local:   http://localhost:${PORT}`);
     for (const url of networkUrls()) console.log(`Network: ${url}`);
     console.log(`Health check: /api/health`);
