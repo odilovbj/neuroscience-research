@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -95,19 +95,7 @@ body{font-family:var(--font-body);color:var(--text);background:var(--bg);min-hei
 .pbar-pill{background:var(--card);border:2px solid var(--border2);border-radius:var(--rs);padding:5px 12px;font-size:11px;font-weight:700;color:var(--text);letter-spacing:.04em;font-family:var(--font-display);box-shadow:3px 3px 0 rgba(0,0,0,.5);}
 .pbar-pct{color:var(--accent);font-size:11px;font-weight:700;}
 
-/* ── LANG SWITCHER ── */
-.lang-switch{
-  position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:400;
-  background:var(--card);
-  border:2px solid var(--border2);border-radius:var(--rs);
-  padding:3px;display:flex;align-items:center;
-  pointer-events:all;transition:opacity .4s,transform .4s;
-  box-shadow:3px 3px 0 rgba(0,0,0,.5);
-}
-.lang-switch.hidden{opacity:0;pointer-events:none;transform:translateX(-50%) translateY(-10px);}
-.lang-opt{position:relative;z-index:2;padding:5px 13px;border-radius:6px;font-size:11.5px;font-weight:700;color:var(--muted2);cursor:pointer;transition:color .2s;white-space:nowrap;display:flex;align-items:center;gap:5px;user-select:none;}
-.lang-opt.active{color:#1a0a10;}
-.lang-pill{position:absolute;top:3px;bottom:3px;background:var(--accent);border-radius:6px;transition:left .25s cubic-bezier(.4,0,.2,1),width .25s cubic-bezier(.4,0,.2,1);z-index:1;}
+/* ── THEME TOGGLE ── */
 .theme-toggle{position:fixed;top:8px;right:12px;z-index:400;width:34px;height:34px;border-radius:var(--rs);background:var(--card);border:2px solid var(--border2);box-shadow:3px 3px 0 rgba(0,0,0,.5);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
 .theme-toggle:hover{transform:translate(-1px,-1px);}
 .theme-toggle:active{transform:translate(2px,2px);}
@@ -349,10 +337,10 @@ p{color:var(--sub);line-height:1.7;font-size:.98rem;}
 .admin-btn:hover{color:var(--text);border-color:var(--border2);}
 .admin-tools{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
 .admin-note{margin-top:12px;padding:12px 14px;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.22);border-radius:12px;font-size:12.5px;color:var(--muted);line-height:1.55;}
-.admin-search{width:100%;margin-top:14px;padding:11px 16px;border-radius:12px;border:1px solid var(--border2));background:var(--card-hi);color:var(--text);font-family:inherit;font-size:14px;outline:none;transition:border-color .2s,background .2s;box-shadow:0 3px 10px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.1);}
+.admin-search{width:100%;margin-top:14px;padding:11px 16px;border-radius:12px;border:1px solid var(--border2);background:var(--card-hi);color:var(--text);font-family:inherit;font-size:14px;outline:none;transition:border-color .2s,background .2s;box-shadow:0 3px 10px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.1);}
 .admin-search:focus{border-color:var(--accent);}
 .admin-search::placeholder{color:var(--muted2);}
-.row-del{background:rgba(239,68,68,.85);border:1px solid var(--border2));color:#fff;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;transition:background .2s,transform .2s;box-shadow:0 2px 8px rgba(239,68,68,.4);}
+.row-del{background:rgba(239,68,68,.85);border:1px solid var(--border2);color:#fff;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;transition:background .2s,transform .2s;box-shadow:0 2px 8px rgba(239,68,68,.4);}
 .row-del:hover{background:#ef4444;transform:scale(1.12);}
 .store-badge{display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:7px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--card-hi);font-size:12px;font-weight:700;color:var(--muted);}
 .store-badge.ok{color:var(--green);border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.1);}
@@ -418,12 +406,6 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
   <span class="pbar-pct" id="ppct">0%</span>
 </div>
 
-<div class="lang-switch" id="lang-sw">
-  <div class="lang-pill" id="lpill"></div>
-  <div class="lang-opt active" id="lo-uz" onclick="setLang('uz')">🇺🇿 UZ</div>
-  <div class="lang-opt" id="lo-ru" onclick="setLang('ru')">🇷🇺 RU</div>
-  <div class="lang-opt" id="lo-en" onclick="setLang('en')">🇬🇧 EN</div>
-</div>
 <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Light / dark mode">🌙</button>
 
 <div id="app"></div>
@@ -438,101 +420,9 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
 <div class="toast" id="toast"></div>
 
 <script>
-// ═══ TRANSLATIONS ════════════════════════════════════════════════════════
+// ═══ TEXT (English only) ═════════════════════════════════════════════════
 const TR={
-uz:{title:'Migren, Uyqu va Xotira',sub:"O'smirlar o'rtasida ilmiy neyrologiya tadqiqoti.",anon:'Anonim · Ilmiy maqsad',
-  about:"Bu so'rovnoma migren bosh og'rig'i, uyqu sifati va ishchi xotira o'rtasidagi bog'liqlikni o'rganadi.",
-  parts:'3 savolnoma',testlbl:'Xotira testi',dur:'5-10 daqiqa',priv:"To'liq anonim",
-  contact:"Savollar yoki murojaat uchun:",start:'Boshlash',cont:'Davom etish',back:'← Orqaga',
-  vol:"Ishtirok ixtiyoriy · Istalgan vaqtda to'xtatilishi mumkin",
-  demo_t:'Siz haqingizda',demo_s:"Natijalarni guruhlash uchun kerak.",
-  age:'Yoshingiz',sex:'Jinsingiz',grade:'Sinfingiz',hnow:"Hozir bosh og'rig'ingiz bormi?",
-  f:'Qiz',m:"O'g'il",pns:'Aytishni xohlamayman',yesh:'Ha, bor',noh:"Yo'q, yaxshiman",
-  yes:'Ha',no:"Yo'q",
-  mig_t:"Bosh og'riq haqida",mig_s:"So'nggi 3 oy ichidagi holatni nazarda tuting.",
-  mq0:"So'nggi 3 oy ichida bosh og'rig'i bir kun yoki undan ko'proq faoliyatingizni cheklaganmi?",
-  mq1:"Bosh og'riq paytida ko'nglingiz aynidimi yoki qayt qilgingiz kelganmi?",
-  mq2:"Bosh og'riq paytida yorug'lik sizni bezovta qilganmi?",
-  mfreq_q:"Oyiga o'rtacha necha kun bosh og'rig'i bo'ladi?",
-  mf:["Umuman bo'lmaydi","1–3 kun","4–7 kun","8–14 kun","15 kundan ko'p"],
-  p1t:'Uyqu odatlaringiz',p1s:"O'tgan bir oy ichidagi odatiy holatni nazarda tuting.",
-  q1q:'Odatda kechqurun soat nechada yotasiz?',
-  q2q:'Uxlab qolishingiz uchun odatda necha daqiqa ketadi?',
-  q2o:['15 daqiqagacha','16–30 daqiqa','31–60 daqiqa',"60 daqiqadan ko'p"],
-  q3q:'Odatda ertalab soat nechada uyg\'onasiz?',
-  q4q:'Kuniga aslida necha soat uxlaysiz?',
-  q4o:['5 soatdan kam','5–6 soat','6–7 soat',"7 soatdan ko'p"],
-  p2t:'Uyqu muammolari',p2s:"O'tgan oyda uyqungiz qanchalik tez-tez buzildi?",
-  p5:["30 daqiqa ichida uxlab qola olmadim","Tunda yoki erta tongda uyg'onib ketdim","Hojatxonaga borish uchun uyg'ondim","Nafas olishda qiynaldim","Yo'tal yoki xurrak tufayli uyg'ondim","Juda sovuq his qildim","Juda issiq his qildim","Yomon tushlar ko'rdim","Og'riq his qildim"],
-  freq:["O'tgan oyda umuman bo'lmadi","Haftada bir martadan kam","Haftada bir-ikki marta","Haftada uch va undan ko'p marta"],
-  p3t:'Umumiy uyqu baholash',p3s:"O'tgan bir oy asosida javob bering.",
-  p6q:"O'tgan oy uyqu sifatingizni qanday baholaysiz?",
-  p6o:['Juda yaxshi','Yetarlicha yaxshi','Yetarlicha yomon','Juda yomon'],
-  p7q:'Uyqu uchun dori qanchalik tez-tez ichdingiz?',
-  p8q:"Haydash, ovqatlanish yoki ijtimoiy faoliyat chog'ida uyqusirab qoldingizmi?",
-  p9q:"Ishga yetarli ishtiyoqni saqlab qolish qanchalik muammo bo'ldi?",
-  p9o:['Umuman muammo emas','Juda kichik muammo','Biroz muammo','Katta muammo'],
-  nb_t:'2-back Xotira Testi',nb_s:"Ekranda harflar birma-bir paydo bo'ladi.",
-  nb_rule:"Agar hozirgi harf 2 TA OLDINGI harf bilan bir xil bo'lsa — tugmani bosing. Mos kelmasa — hech narsa qilmang.",
-  nb_dp:"d-prime (d') bilan baholanadi — tasodifiy bosishlar inobatga olinadi.",
-  nb_go:'Mashq bilan boshlash →',nb_match:'Mos keldi — bosing',
-  nb_ok:"✓ To'g'ri!",nb_err:"✕ Noto'g'ri",nb_miss:"⏱ O'tkazib yubordingiz",
-  res_t:'Natijalar',res_ty:"Ishtirokingiz uchun katta rahmat!",res_sv:"Ma'lumotlar saqlandi.",
-  mig_y:"Migren ehtimoli bor",mig_n:"Migren ko'rsatkichi past",
-  slp_b:"Yomon uyqu",slp_g:"Yaxshi uyqu",
-  di:["Hisoblash uchun ma'lumot yetarli emas.","Juda kuchli natija. Ishchi xotirangiz a'lo.","Yaxshi natija. Ishchi xotira sog'lom doirada.","O'rtacha natija. Charchoq ta'sir qilgan bo'lishi mumkin.","Past natija. Uyqu yoki charchoq muammosi bo'lishi mumkin."],
-  disc:"Bu natijalar faqat ilmiy maqsadda. Tibbiy xulosa emas.",
-  ty_t:"Katta Rahmat!",
-  ty_s:"Ushbu tadqiqotda ishtirok etib, siz juda muhim hissa qo'shdingiz. Ma'lumotlaringiz migren va yosh miyaga ta'sirini o'rganishda yordam beradi.",
-  ty_q:'"Hayotda hech narsadan qo\'rqmaslik kerak, faqat uni tushunish kerak." \u2014 Mari Kyuri',
-  home:'← Bosh sahifaga',fill:'Barcha savollarga javob bering',sel:'Javob tanlang'},
-ru:{title:'Мигрень, Сон и Память',sub:'Научное неврологическое исследование среди подростков.',anon:'Анонимно · Научные цели',
-  about:'Этот опрос изучает связь между мигренью, качеством сна и рабочей памятью. Все ответы конфиденциальны.',
-  parts:'3 анкеты',testlbl:'Тест памяти',dur:'5-10 минут',priv:'Полная анонимность',
-  contact:'По вопросам или для связи:',start:'Начать',cont:'Продолжить',back:'← Назад',
-  vol:'Участие добровольно · Можно остановить в любое время',
-  demo_t:'О вас',demo_s:'Для группировки результатов.',
-  age:'Ваш возраст',sex:'Ваш пол',grade:'Класс',hnow:'У вас сейчас болит голова?',
-  f:'Девушка',m:'Парень',pns:'Предпочитаю не говорить',yesh:'Да, болит',noh:'Нет, всё хорошо',
-  yes:'Да',no:'Нет',
-  mig_t:'О головной боли',mig_s:'Имейте в виду последние 3 месяца.',
-  mq0:'В течение последних 3 месяцев головная боль ограничивала вашу деятельность на день и более?',
-  mq1:'Вас тошнило или была рвота во время головной боли?',
-  mq2:'Вас раздражал свет во время головной боли?',
-  mfreq_q:'В среднем сколько дней в месяц у вас болит голова?',
-  mf:['Совсем нет','1–3 дня','4–7 дней','8–14 дней','Более 15 дней'],
-  p1t:'Привычки сна',p1s:'Обычная ситуация за последний месяц.',
-  q1q:'Во сколько вы обычно ложитесь спать?',
-  q2q:'Сколько минут занимает засыпание?',
-  q2o:['До 15 минут','16–30 минут','31–60 минут','Более 60 минут'],
-  q3q:'Во сколько вы обычно просыпаетесь?',
-  q4q:'Сколько часов фактически спите?',
-  q4o:['Менее 5 часов','5–6 часов','6–7 часов','Более 7 часов'],
-  p2t:'Нарушения сна',p2s:'Как часто за последний месяц сон нарушался?',
-  p5:['Не мог заснуть в течение 30 минут','Просыпался ночью или ранним утром','Вставал в туалет','Не мог нормально дышать','Громко кашлял или храпел','Чувствовал холод','Чувствовал жару','Видел плохие сны','Испытывал боль'],
-  freq:['Не было в прошлом месяце','Реже раза в неделю','1–2 раза в неделю','3 раза в неделю и чаще'],
-  p3t:'Общая оценка сна',p3s:'На основе последнего месяца.',
-  p6q:'Как оцениваете качество сна в целом?',
-  p6o:['Очень хорошо','Достаточно хорошо','Достаточно плохо','Очень плохо'],
-  p7q:'Как часто принимали лекарства для сна?',
-  p8q:'Как часто трудно было не засыпать при вождении, еде или общении?',
-  p9q:'Насколько серьёзной проблемой был недостаток энтузиазма?',
-  p9o:['Совсем не проблема','Очень маленькая','Небольшая','Большая проблема'],
-  nb_t:'Тест 2-back',nb_s:'Буквы появляются по одной.',
-  nb_rule:'Если текущая буква совпадает с буквой 2 ПОЗИЦИИ НАЗАД — нажмите кнопку. Иначе ничего.',
-  nb_dp:"Оценка по d-prime — случайные нажатия учитываются.",
-  nb_go:'Начать с практики →',nb_match:'Совпадает — нажмите',
-  nb_ok:'✓ Верно!',nb_err:'✕ Неверно',nb_miss:'⏱ Пропущено',
-  res_t:'Результаты',res_ty:'Большое спасибо за участие!',res_sv:'Данные сохранены.',
-  mig_y:'Вероятна мигрень',mig_n:'Показатель мигрени низкий',
-  slp_b:'Плохой сон',slp_g:'Хороший сон',
-  di:['Недостаточно данных.','Отличный результат. Рабочая память на высоком уровне.','Хороший результат. В норме.','Средний результат. Усталость могла повлиять.','Низкий результат. Возможны проблемы со сном.'],
-  disc:'Результаты только для науки. Не медицинский диагноз.',
-  ty_t:'Большое Спасибо!',
-  ty_s:'Участвуя в исследовании, вы внесли важный вклад. Данные помогут изучить влияние мигрени на молодой мозг.',
-  ty_q:'«Ничего в жизни не следует бояться, это следует понять.» \u2014 Мария Кюри',
-  home:'← На главную',fill:'Ответьте на все вопросы',sel:'Выберите ответ'},
-en:{title:'Migraine, Sleep & Memory',sub:'A scientific neurology study among adolescents.',anon:'Anonymous · Scientific purpose',
+  title:'Migraine, Sleep & Memory',sub:'A scientific neurology study among adolescents.',anon:'Anonymous · Scientific purpose',
   about:'This survey examines the link between migraine, sleep quality and working memory. All responses are confidential.',
   parts:'3 questionnaires',testlbl:'Memory test',dur:'5-10 minutes',priv:'Fully anonymous',
   contact:'For questions or enquiries:',start:'Start',cont:'Continue',back:'← Back',
@@ -577,14 +467,14 @@ en:{title:'Migraine, Sleep & Memory',sub:'A scientific neurology study among ado
   ty_t:'Thank You!',
   ty_s:'By participating you have made an important contribution. Your data will help us study the impact of migraine on the young brain.',
   ty_q:'"Nothing in life is to be feared, it is only to be understood." \u2014 Marie Curie',
-  home:'← Return to home',fill:'Please answer all questions',sel:'Select an answer'}
+  home:'← Return to home',fill:'Please answer all questions',sel:'Select an answer'
 };
-let LANG='en';
+const LANG='en'; // kept as a constant so the saved data's "language" column stays consistent
 const SURVEY_VERSION='1.2.0'; // bump this when the question set or scoring logic changes
 const PREVIEW_MODE=(()=>{try{return new URLSearchParams(window.location.search).get('preview')==='1';}catch(e){return false;}})();
-function t(k){return TR[LANG][k]||TR.uz[k]||k;}
+function t(k){return TR[k]||k;}
 
-// ═══ LANG SWITCHER ═══════════════════════════════════════════════════════
+// ═══ THEME ═══════════════════════════════════════════════════════════════
 function applyTheme(mode){
   document.documentElement.setAttribute('data-theme',mode);
   const btn=document.getElementById('theme-toggle');
@@ -604,30 +494,6 @@ function toggleTheme(){
   const el=document.getElementById('cyr');
   if(el)el.textContent=new Date().getFullYear();
 })();
-function setLang(l){
-  LANG=l;
-  ['uz','ru','en'].forEach(x=>document.getElementById('lo-'+x).classList.toggle('active',x===l));
-  movePill(l);
-  if(PREVIEW_MODE){render();return;}
-  let done=false;
-  try{done=localStorage.getItem('tadqiqot_done')==='1';}catch(e){}
-  const viewingOwnResults=S.step===8||S.step===9;
-  if((done||CURRENT_BLOCK)&&!viewingOwnResults){
-    sBlocked(done?'repeat':CURRENT_BLOCK);
-  }else{
-    render();
-  }
-}
-function movePill(l){
-  const pill=document.getElementById('lpill');
-  const opt=document.getElementById('lo-'+l);
-  const sw=document.getElementById('lang-sw');
-  if(!pill||!opt||!sw)return;
-  const sR=sw.getBoundingClientRect(),oR=opt.getBoundingClientRect();
-  pill.style.cssText=`position:absolute;top:3px;bottom:3px;border-radius:8px;z-index:1;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 2px 12px rgba(43,63,158,.4);transition:left .3s cubic-bezier(.4,0,.2,1),width .3s cubic-bezier(.4,0,.2,1);left:${oR.left-sR.left}px;width:${oR.width}px;`;
-}
-setTimeout(()=>movePill('uz'),60);
-window.addEventListener('resize',()=>movePill(LANG));
 
 // ═══ STATE ═══════════════════════════════════════════════════════════════
 const S={
@@ -759,9 +625,6 @@ function setP(n){
   document.getElementById('pbar').style.width=pct+'%';
   document.getElementById('ppct').textContent=pct+'%';
   document.getElementById('pstep').textContent=Math.min(n+1,STEPS)+' / '+STEPS;
-  // hide lang bar after step 0
-  const ls=document.getElementById('lang-sw');
-  if(n>0) ls.classList.add('hidden'); else ls.classList.remove('hidden');
 }
 function toast(msg,col){
   const el=document.getElementById('toast');
@@ -869,7 +732,7 @@ function clockPicker(id,gid,defaultH,defaultM){
           <div class="wheel-highlight"></div>
           <div class="wheel-scroll" id="${id}_h" data-clock="${id}" data-unit="h"><div class="wheel-pad"></div>${hItems}<div class="wheel-pad"></div></div>
         </div>
-        <div class="wheel-col-lbl">${LANG==='en'?'Hour':LANG==='ru'?'Час':'Soat'}</div>
+        <div class="wheel-col-lbl">Hour</div>
       </div>
       <div class="wheel-sep">:</div>
       <div class="wheel-col">
@@ -877,11 +740,11 @@ function clockPicker(id,gid,defaultH,defaultM){
           <div class="wheel-highlight"></div>
           <div class="wheel-scroll" id="${id}_m" data-clock="${id}" data-unit="m"><div class="wheel-pad"></div>${mItems}<div class="wheel-pad"></div></div>
         </div>
-        <div class="wheel-col-lbl">${LANG==='en'?'Minute':LANG==='ru'?'Минута':'Daqiqa'}</div>
+        <div class="wheel-col-lbl">Minute</div>
       </div>
     </div>
-    <div class="clock-digit" id="${id}_disp">${LANG==='en'?'Selected':LANG==='ru'?'Выбрано':'Tanlangan'}: <span>${pad2(defaultH)}:${pad2(minutes[mIdx])}</span></div>
-    <div class="clock-hint">${LANG==='en'?'Scroll or tap to choose — keeps looping':LANG==='ru'?'Прокрутите или нажмите':'Tanlash uchun aylantiring yoki bosing'}</div>
+    <div class="clock-digit" id="${id}_disp">Selected: <span>${pad2(defaultH)}:${pad2(minutes[mIdx])}</span></div>
+    <div class="clock-hint">Scroll or tap to choose — keeps looping</div>
   </div>`;
 }
 function markWheelActive(wrap,flatIdx){
@@ -936,7 +799,7 @@ function commitClockValue(id,justSettled){
   const cfg=CLOCKS[id];if(!cfg)return;
   const lbl=`${pad2(cfg.curH)}:${pad2(cfg.curM)}`;
   const disp=document.getElementById(id+'_disp');
-  if(disp) disp.innerHTML=`${LANG==='en'?'Selected':LANG==='ru'?'Выбрано':'Tanlangan'}: <span>${lbl}</span>`;
+  if(disp) disp.innerHTML=`Selected: <span>${lbl}</span>`;
   const answerId=cfg.gid||id;
   const container=document.getElementById('g_'+answerId);
   if(container) container.dataset.val=lbl;
@@ -995,21 +858,21 @@ function s0(){
   app.innerHTML=`<div class="screen active" id="sc0">
   <div class="hero">
     <div class="hero-badge">🔒 ${t('anon')}</div>
-    <h1>${t('title').includes(',')?t('title').split(',')[0]+',<br><span class="grad">'+t('title').split(',').slice(1).join(',').trim()+'</span>':t('title')}</h1>
+    <h1>Migraine,<br><span class="grad">Sleep &amp; Memory</span></h1>
     <p style="margin:14px auto 0;max-width:400px;font-size:16px;">${t('sub')}</p>
   </div>
   <div class="card"><div class="card-inner">
-    <div class="eyebrow">${LANG==='en'?'About the study':LANG==='ru'?'Об исследовании':'Tadqiqot haqida'}</div>
+    <div class="eyebrow">About the study</div>
     <div class="explain-box"><p>${t('about')}</p></div>
     <div class="info-grid" style="margin-top:16px;">
-      <div class="info-item"><div class="info-icon">📋</div><div><div class="info-lbl">${LANG==='en'?'Parts':LANG==='ru'?'Части':'Qismlar'}</div><div class="info-val">${t('parts')}</div></div></div>
-      <div class="info-item"><div class="info-icon">🧠</div><div><div class="info-lbl">${LANG==='en'?'Task':LANG==='ru'?'Задание':'Test'}</div><div class="info-val">${t('testlbl')}</div></div></div>
-      <div class="info-item"><div class="info-icon">⏱️</div><div><div class="info-lbl">${LANG==='en'?'Duration':LANG==='ru'?'Длительность':'Vaqt'}</div><div class="info-val">${t('dur')}</div></div></div>
-      <div class="info-item"><div class="info-icon">🔒</div><div><div class="info-lbl">${LANG==='en'?'Privacy':LANG==='ru'?'Анонимность':'Maxfiylik'}</div><div class="info-val">${t('priv')}</div></div></div>
+      <div class="info-item"><div class="info-icon">📋</div><div><div class="info-lbl">Parts</div><div class="info-val">${t('parts')}</div></div></div>
+      <div class="info-item"><div class="info-icon">🧠</div><div><div class="info-lbl">Task</div><div class="info-val">${t('testlbl')}</div></div></div>
+      <div class="info-item"><div class="info-icon">⏱️</div><div><div class="info-lbl">Duration</div><div class="info-val">${t('dur')}</div></div></div>
+      <div class="info-item"><div class="info-icon">🔒</div><div><div class="info-lbl">Privacy</div><div class="info-val">${t('priv')}</div></div></div>
     </div>
   </div></div>
   <div class="card"><div class="card-inner">
-    <div class="eyebrow">${LANG==='en'?'Instruments used':LANG==='ru'?'Используемые методики':'Foydalanilgan metodikalar'}</div>
+    <div class="eyebrow">Instruments used</div>
     <div class="explain-box">
       <p style="font-size:13px;line-height:1.85;">
         <strong>PSQI</strong> — Buysse, D. J., Reynolds, C. F., Monk, T. H., Berman, S. R., & Kupfer, D. J. (1989). The Pittsburgh Sleep Quality Index. <em>Psychiatry Research, 28</em>(2), 193–213.<br><br>
@@ -1019,7 +882,7 @@ function s0(){
     </div>
   </div></div>
   <div class="card"><div class="card-inner">
-    <div class="eyebrow">${LANG==='en'?'Contact':LANG==='ru'?'Связь':'Bog\'lanish'}</div>
+    <div class="eyebrow">Contact</div>
     <div class="explain-box"><p style="margin-bottom:12px;">${t('contact')}</p>
     <div class="contact-bar">
       <div class="contact-chip">
@@ -1033,20 +896,12 @@ function s0(){
     </div></div>
   </div></div>
   <div class="card"><div class="card-inner">
-    <div class="eyebrow">${LANG==='en'?'Consent':LANG==='ru'?'Согласие':'Rozilik'}</div>
+    <div class="eyebrow">Consent</div>
     <div class="explain-box">
-      <p>${LANG==='en'
-        ?"Participation is completely voluntary and anonymous. This survey is open only to adolescents aged 12\u201318. You can stop at any point without any consequence, and no name, phone number, or other identifying information is ever collected. Your answers will only be used for academic research."
-        :LANG==='ru'
-        ?'Участие полностью добровольное и анонимное. Опрос предназначен только для подростков 12\u201318 лет. Вы можете остановиться в любой момент без каких-либо последствий, и мы не собираем имя, номер телефона или любую другую идентифицирующую информацию. Ваши ответы будут использованы только в академических целях.'
-        :"Ishtirok etish to'liq ixtiyoriy va anonim. Bu so'rovnoma faqat 12\u201318 yoshdagi o'smirlar uchun mo'ljallangan. Istalgan vaqtda hech qanday oqibatsiz to'xtatishingiz mumkin, va sizning ismingiz, telefon raqamingiz yoki boshqa shaxsni aniqlovchi ma'lumot hech qachon so'ralmaydi. Javoblaringiz faqat ilmiy tadqiqot maqsadida ishlatiladi."}</p>
+      <p>Participation is completely voluntary and anonymous. This survey is open only to adolescents aged 12\u201318. You can stop at any point without any consequence, and no name, phone number, or other identifying information is ever collected. Your answers will only be used for academic research.</p>
       <label class="consent-box" id="consent-box">
         <input type="checkbox" id="consent-check" class="consent-cb">
-        <span>${LANG==='en'
-          ?"I confirm I am between 12\u201318 years old and I voluntarily agree to take part in this survey."
-          :LANG==='ru'
-          ?'Я подтверждаю, что мне от 12 до 18 лет, и добровольно соглашаюсь принять участие в этом опросе.'
-          :"Men 12\u201318 yosh oralig'idaman va ushbu so'rovnomada ixtiyoriy ravishda qatnashishga roziman."}</span>
+        <span>I confirm I am between 12\u201318 years old and I voluntarily agree to take part in this survey.</span>
       </label>
     </div>
   </div></div>
@@ -1056,9 +911,9 @@ function s0(){
   </button>
   <p style="text-align:center;margin-top:13px;font-size:12px;color:var(--muted2);">${t('vol')}</p>
   <div class="proj-footer">
-    <strong>${LANG==='en'?'About this project':LANG==='ru'?'Об этом проекте':'Loyiha haqida'}</strong><br>
-    ${LANG==='en'?'Researcher':LANG==='ru'?'Исследователь':'Tadqiqotchi'}: <span class="proj-edit">Bekzod Odilov</span> ·
-    ${LANG==='en'?'Institution':LANG==='ru'?'Учреждение':'Muassasa'}: <span class="proj-edit">Specialized School №1 in Navoi City</span>
+    <strong>About this project</strong><br>
+    Researcher: <span class="proj-edit">Bekzod Odilov</span> ·
+    Institution: <span class="proj-edit">Specialized School №1 in Navoi City</span>
   </div>
   </div>`;
 }
@@ -1066,7 +921,7 @@ function s0(){
 function startSurveyFromConsent(){
   const cb=document.getElementById('consent-check');
   if(!cb||!cb.checked){
-    toast('⚠️ '+(LANG==='en'?'Please confirm you agree to participate first':LANG==='ru'?'Пожалуйста, сначала подтвердите согласие на участие':"Iltimos, avval ishtirok etishga rozilik bildiring"),'var(--yellow)');
+    toast('⚠️ Please confirm you agree to participate first','var(--yellow)');
     const box=document.getElementById('consent-box');
     if(box){box.classList.add('shake');setTimeout(()=>box.classList.remove('shake'),500);}
     return;
@@ -1121,11 +976,11 @@ function stopHeartbeat(){
 // ═══ STEP 1: DEMOGRAPHICS ═════════════════════════════════════════════════
 function s1(){
   setP(1);
-  const ageLabel=LANG==='en'?'yrs':LANG==='ru'?'лет':'yosh';
-  const gradeLabel=LANG==='en'?'gr':LANG==='ru'?'кл':'sinf';
+  const ageLabel='yrs';
+  const gradeLabel='gr';
   app.innerHTML=`<div class="screen active" id="sc1">
   <div class="card"><div class="card-inner">
-    <div class="eyebrow">1 / 9 · ${LANG==='en'?'Demographics':LANG==='ru'?'Демография':'Demografiya'}</div>
+    <div class="eyebrow">1 / 9 · Demographics</div>
     <h2 style="margin-bottom:6px;">${t('demo_t')}</h2>
     <p style="margin-bottom:22px;">${t('demo_s')}</p>
     <div class="qs-block">
@@ -1164,11 +1019,11 @@ function sBlocked(reason){
   const isAge=reason==='age';
   const icon=isAge?'🔞':'🔒';
   const title=isAge
-    ?(LANG==='en'?"Sorry, you can't participate":LANG==='ru'?'Извините, вы не можете участвовать':"Uzr, siz qatnasha olmaysiz")
-    :(LANG==='en'?"You've already participated":LANG==='ru'?'Вы уже приняли участие':"Siz bu so'rovnomada qatnashib bo'lgansiz");
+    ?"Sorry, you can't participate"
+    :"You've already participated";
   const body=isAge
-    ?(LANG==='en'?'This study is only open to adolescents aged 12–18. Thank you very much for your interest!':LANG==='ru'?'Это исследование предназначено только для подростков в возрасте 12–18 лет. Большое спасибо за интерес!':"Bu tadqiqot faqat 12–18 yoshdagi o'smirlar uchun mo'ljallangan. Qiziqishingiz uchun katta rahmat!")
-    :(LANG==='en'?'Each person may complete this survey only once, so the data stays accurate. Thank you so much for helping with this research!':LANG==='ru'?'Каждый участник может пройти этот опрос только один раз — это важно для точности данных. Большое спасибо за помощь в исследовании!':"Har bir kishi ushbu so'rovnomada faqat bir marta qatnasha oladi — bu ma'lumotlar aniqligi uchun muhim. Tadqiqotga yordamingiz uchun katta rahmat!");
+    ?'This study is only open to adolescents aged 12–18. Thank you very much for your interest!'
+    :'Each person may complete this survey only once, so the data stays accurate. Thank you so much for helping with this research!';
   app.innerHTML=`<div class="screen active">
     <div class="card"><div class="card-inner" style="text-align:center;padding:40px 22px;">
       <div style="font-size:54px;margin-bottom:16px;">${icon}</div>
@@ -1182,7 +1037,6 @@ function sBlocked(reason){
 // ═══ STEP 2: ID-MIGRAINE ══════════════════════════════════════════════════
 function s2(){
   setP(2);
-  const qs=t('mq0')+','+t('mq1')+','+t('mq2');
   const qArr=[t('mq0'),t('mq1'),t('mq2')];
   const qIco=['😣','🤢','💡'];
   const qHtml=qArr.map((q,i)=>`
@@ -1203,45 +1057,45 @@ function s2(){
       ${optGroup('mfreq',mfItems,true)}
     </div>
     <div class="qs-block" style="margin-top:22px;">
-      <div class="qs"><span class="qs-icon">🗓️</span>${LANG==='en'?'When was your most recent headache?':LANG==='ru'?'Когда была ваша последняя головная боль?':"Eng so'nggi bosh og'rig'ingiz qachon bo'lgan?"}</div>
+      <div class="qs"><span class="qs-icon">🗓️</span>When was your most recent headache?</div>
       ${optGroup('mrecency',[
-        {v:'today',l:LANG==='en'?'Today':LANG==='ru'?'Сегодня':'Bugun',e:'🔴'},
-        {v:'1to2',l:LANG==='en'?'1\u20132 days ago':LANG==='ru'?'1\u20132 дня назад':'1\u20132 kun oldin',e:'🟠'},
-        {v:'3to7',l:LANG==='en'?'3\u20137 days ago':LANG==='ru'?'3\u20137 дней назад':'3\u20137 kun oldin',e:'🟡'},
-        {v:'gt7',l:LANG==='en'?'More than a week ago':LANG==='ru'?'Более недели назад':"Bir haftadan ko'proq oldin",e:'🟢'},
-        {v:'never',l:LANG==='en'?"I don't really get headaches":LANG==='ru'?'У меня редко бывают головные боли':"Menda kamdan-kam bosh og'rig'i bo'ladi",e:'⚪'}
+        {v:'today',l:'Today',e:'🔴'},
+        {v:'1to2',l:'1\u20132 days ago',e:'🟠'},
+        {v:'3to7',l:'3\u20137 days ago',e:'🟡'},
+        {v:'gt7',l:'More than a week ago',e:'🟢'},
+        {v:'never',l:"I don't really get headaches",e:'⚪'}
       ],true)}
     </div>
     <div class="qs-block" style="margin-top:22px;">
-      <div class="qs"><span class="qs-icon">✨</span>${LANG==='en'?'Before a headache starts, do you ever see flashing lights, zigzag lines, or blind spots?':LANG==='ru'?'Перед началом головной боли видите ли вы мерцающие огни, зигзагообразные линии или слепые пятна?':"Bosh og'rig'i boshlanishidan oldin miltillovchi yorug'lik, zigzag chiziqlar yoki ko'r nuqtalarni ko'rasizmi?"}</div>
+      <div class="qs"><span class="qs-icon">✨</span>Before a headache starts, do you ever see flashing lights, zigzag lines, or blind spots?</div>
       ${optGroup('maura',[
-        {v:'yes',l:LANG==='en'?'Yes, often':LANG==='ru'?'Да, часто':'Ha, tez-tez',e:'✨'},
-        {v:'sometimes',l:LANG==='en'?'Yes, sometimes':LANG==='ru'?'Да, иногда':'Ha, ba\u2018zan',e:'🌤️'},
-        {v:'no',l:LANG==='en'?'No, never':LANG==='ru'?'Нет, никогда':"Yo'q, hech qachon",e:'🚫'},
-        {v:'unsure',l:LANG==='en'?"Not sure":LANG==='ru'?'Не уверен(а)':'Aniq bilmayman',e:'🤔'}
+        {v:'yes',l:'Yes, often',e:'✨'},
+        {v:'sometimes',l:'Yes, sometimes',e:'🌤️'},
+        {v:'no',l:'No, never',e:'🚫'},
+        {v:'unsure',l:'Not sure',e:'🤔'}
       ],true)}
     </div>
     <hr>
     <div class="qs-block" style="margin-top:22px;">
-      <div class="qs first"><span class="qs-icon">💭</span>${LANG==='en'?'Last two weeks \u2014 how often have you been bothered by:':LANG==='ru'?'За последние 2 недели, как часто вас беспокоило:':"So'nggi 2 hafta ichida sizni quyidagilar qanchalik bezovta qildi:"}</div>
+      <div class="qs first"><span class="qs-icon">💭</span>Last two weeks \u2014 how often have you been bothered by:</div>
     </div>
     ${[
-      {key:'anx1', uz:"Asabiylashish, xavotirlanish yoki taranglik hissi", ru:'Чувство нервозности, тревоги или напряжённости', en:'Feeling nervous, anxious, or on edge', e:'😬'},
-      {key:'anx2', uz:"Xavotirni to'xtata olmaslik yoki nazorat qila olmaslik", ru:'Невозможность остановить или контролировать беспокойство', en:'Not being able to stop or control worrying', e:'🌀'},
-      {key:'anx3', uz:"Bo'shashib, tinchlana olmaslik", ru:'Трудность расслабиться', en:'Trouble relaxing', e:'😣'},
-      {key:'anx4', uz:"Nimadir yomon bo'lib qolishidan qo'rqish", ru:'Страх, что может произойти что-то плохое', en:'Feeling afraid as if something awful might happen', e:'😨'}
+      {key:'anx1', en:'Feeling nervous, anxious, or on edge', e:'😬'},
+      {key:'anx2', en:'Not being able to stop or control worrying', e:'🌀'},
+      {key:'anx3', en:'Trouble relaxing', e:'😣'},
+      {key:'anx4', en:'Feeling afraid as if something awful might happen', e:'😨'}
     ].map((item,i)=>`
     <div class="qs-block" style="margin-top:${i===0?14:22}px;">
-      <div class="qs" style="font-size:13.5px;">${LANG==='en'?item.en:LANG==='ru'?item.ru:item.uz}</div>
+      <div class="qs" style="font-size:13.5px;">${item.en}</div>
       ${optGroup(item.key,[
-        {v:'0',l:LANG==='en'?'Not at all':LANG==='ru'?'Совсем нет':'Umuman yo\u2018q',e:'😌'},
-        {v:'1',l:LANG==='en'?'Several days':LANG==='ru'?'Несколько дней':'Bir necha kun',e:'🙂'},
-        {v:'2',l:LANG==='en'?'More than half the days':LANG==='ru'?'Больше половины дней':"Ko'p kunlarda",e:'😟'},
-        {v:'3',l:LANG==='en'?'Nearly every day':LANG==='ru'?'Почти каждый день':'Deyarli har kuni',e:'😣'}
+        {v:'0',l:'Not at all',e:'😌'},
+        {v:'1',l:'Several days',e:'🙂'},
+        {v:'2',l:'More than half the days',e:'😟'},
+        {v:'3',l:'Nearly every day',e:'😣'}
       ],true)}
     </div>`).join('')}
     <div class="qs-block qc-block" style="margin-top:22px;">
-      <div class="qs"><span class="qs-icon">🎯</span>${LANG==='en'?"Quick check \u2014 to show you're still reading, please select \"No\" here:":LANG==='ru'?'Быстрая проверка \u2014 чтобы показать, что вы всё ещё внимательны, выберите здесь «Нет»:':'Tezkor tekshiruv \u2014 hali ham diqqat bilan o\u2018qiyotganingizni ko\u2018rsatish uchun, shu yerda "Yo\u2018q" ni tanlang:'}</div>
+      <div class="qs"><span class="qs-icon">🎯</span>Quick check \u2014 to show you're still reading, please select "No" here:</div>
       ${pillGroup('qc_attn2','✅','❌',t('yes'),t('no'),true)}
     </div>
   </div></div>
@@ -1369,7 +1223,7 @@ function s5(){
       ${optGroup('p9',t('p9o').map((l,i)=>({v:i.toString(),l,e:['💪','🙂','😐','😩'][i]})),true)}
     </div>
     <div class="qs-block qc-block" style="margin-top:22px;">
-      <div class="qs"><span class="qs-icon">🎯</span>${LANG==='en'?"To show you're reading carefully, please select \"Yes\" here:":LANG==='ru'?'Чтобы показать, что вы внимательно читаете, выберите здесь «Да»:':'Diqqat bilan o\u2018qiyotganingizni ko\u2018rsatish uchun, shu yerda "Ha" ni tanlang:'}</div>
+      <div class="qs"><span class="qs-icon">🎯</span>To show you're reading carefully, please select "Yes" here:</div>
       ${pillGroup('qc_attn','✅','❌',t('yes'),t('no'),true)}
     </div>
   </div></div>
@@ -1419,36 +1273,36 @@ function s6(){
     <div class="eyebrow">6 / 9 · ${t('nb_t')}</div>
     <h2 style="margin-bottom:8px;">${t('nb_t')}</h2>
     <p style="margin-bottom:14px;">${t('nb_s')}</p>
-    <div class="nb-oneliner">${LANG==='en'?'💡 In one line: letters appear one by one — press the button only when the current letter is the SAME as the one shown 2 letters ago.':LANG==='ru'?'💡 Одной фразой: буквы появляются одна за другой — нажимайте кнопку только тогда, когда текущая буква совпадает с буквой, показанной 2 шага назад.':"💡 Bir gap bilan: harflar birin-ketin chiqadi — hozirgi harf 2 ta OLDINGI harf bilan AYNAN bir xil bo'lsagina tugmani bosing."}</div>
-    ${window.innerWidth<360?`<p class="muted2" style="margin-top:10px;text-align:center;">📱 ${LANG==='en'?'Tip: this works best held upright with both thumbs free \u2014 a slightly bigger screen makes the letters easier to track.':LANG==='ru'?'Совет: удобнее держать телефон прямо, освободив оба больших пальца \u2014 на чуть большем экране буквы легче отслеживать.':"Maslahat: telefonni tik ushlab, ikkala bosh barmog'ingiz bo'sh bo'lsa qulayroq \u2014 kattaroq ekranda harflarni kuzatish osonroq."}</p>`:''}
+    <div class="nb-oneliner">💡 In one line: letters appear one by one — press the button only when the current letter is the SAME as the one shown 2 letters ago.</div>
+    ${window.innerWidth<360?`<p class="muted2" style="margin-top:10px;text-align:center;">📱 Tip: this works best held upright with both thumbs free \u2014 a slightly bigger screen makes the letters easier to track.</p>`:''}
     <div class="rule-panel" style="margin-top:14px;">
-        <h3 style="margin-bottom:10px;">📐 ${LANG==='en'?'The Rule':LANG==='ru'?'Правило':'Qoidasi'}</h3>
+        <h3 style="margin-bottom:10px;">📐 The Rule</h3>
         <p style="margin-bottom:14px;font-size:14.5px;">${t('nb_rule')}</p>
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:center;margin:18px 0;">
           ${['K','T','K'].map((l,i)=>`<div style="width:54px;height:54px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:27px;font-weight:800;${i===2?'border:1.5px solid var(--green);background:rgba(52,211,153,.18);color:var(--green);':'border:1px solid var(--border);background:var(--card-hi);color:var(--muted);'}">${l}</div>${i<2?'<span style="color:var(--muted2);font-size:20px;">→</span>':''}`).join('')}
-          <div style="padding:7px 13px;background:rgba(52,211,153,.15);border:1px solid var(--green);border-radius:12px;font-size:12.5px;font-weight:700;color:var(--green);">👆 ${LANG==='en'?'PRESS':LANG==='ru'?'НАЖАТЬ':'BOSING'}</div>
+          <div style="padding:7px 13px;background:rgba(52,211,153,.15);border:1px solid var(--green);border-radius:12px;font-size:12.5px;font-weight:700;color:var(--green);">👆 PRESS</div>
         </div>
         <p style="font-size:13px;color:var(--muted);">${t('nb_dp')}</p>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;">
-      ${[['🎓',LANG==='en'?'First':LANG==='ru'?'Сначала':'Avval',LANG==='en'?'8 · practice':LANG==='ru'?'8 · практика':'8 · mashq'],['🔤',LANG==='en'?'Then':LANG==='ru'?'Затем':'Keyin',LANG==='en'?'22 · real':LANG==='ru'?'22 · настоящий':'22 · asosiy'],['⏱️',LANG==='en'?'Duration':LANG==='ru'?'Время':'Vaqt','~3min']].map(([e,l,v])=>`<div style="background:var(--card-hi);border:1px solid var(--border2);box-shadow:0 3px 10px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.1);border-radius:13px;padding:13px 8px;text-align:center;"><div style="font-size:22px;margin-bottom:5px;">${e}</div><div style="font-size:9.5px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">${l}</div><div style="font-size:14px;font-weight:700;margin-top:3px;">${v}</div></div>`).join('')}
+      ${[['🎓','First','8 · practice'],['🔤','Then','22 · real'],['⏱️','Duration','~3min']].map(([e,l,v])=>`<div style="background:var(--card-hi);border:1px solid var(--border2);box-shadow:0 3px 10px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.1);border-radius:13px;padding:13px 8px;text-align:center;"><div style="font-size:22px;margin-bottom:5px;">${e}</div><div style="font-size:9.5px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">${l}</div><div style="font-size:14px;font-weight:700;margin-top:3px;">${v}</div></div>`).join('')}
     </div>
-    <div class="qs" style="margin-top:16px;"><span class="qs-icon">☕</span>${LANG==='en'?'Optional \u2014 helps us interpret your results:':'Ixtiyoriy \u2014 natijalaringizni to\u2018g\u2018ri tushunishga yordam beradi:'}</div>
+    <div class="qs" style="margin-top:16px;"><span class="qs-icon">☕</span>Optional \u2014 helps us interpret your results:</div>
     <div class="qs-block qc-block" style="margin-top:10px;">
-      <div class="qs" style="margin-top:0;font-size:13px;">${LANG==='en'?'Sleep last night?':LANG==='ru'?'Сон прошлой ночью?':"Kecha necha soat uxladingiz?"}</div>
-      ${optGroup('ctx_sleep',[{v:'lt5',l:LANG==='en'?'< 5 hrs':'< 5 soat',e:'😵'},{v:'5to7',l:LANG==='en'?'5\u20137 hrs':'5\u20137 soat',e:'😪'},{v:'gt7',l:LANG==='en'?'7+ hrs':'7+ soat',e:'😊'}],true)}
+      <div class="qs" style="margin-top:0;font-size:13px;">Sleep last night?</div>
+      ${optGroup('ctx_sleep',[{v:'lt5',l:'< 5 hrs',e:'😵'},{v:'5to7',l:'5\u20137 hrs',e:'😪'},{v:'gt7',l:'7+ hrs',e:'😊'}],true)}
     </div>
     <div class="qs-block qc-block" style="margin-top:22px;">
-      <div class="qs" style="margin-top:0;font-size:13px;">${LANG==='en'?'Any caffeine today (tea, coffee, energy drinks)?':LANG==='ru'?'Кофеин сегодня (чай, кофе, энергетики)?':"Bugun kofein iste'mol qildingizmi (choy, qahva, energetik)?"}</div>
+      <div class="qs" style="margin-top:0;font-size:13px;">Any caffeine today (tea, coffee, energy drinks)?</div>
       ${pillGroup('ctx_caffeine','☕','🚫',t('yes'),t('no'),true)}
     </div>
     <div class="qs-block qc-block" style="margin-top:22px;">
-      <div class="qs" style="margin-top:0;font-size:13px;">${LANG==='en'?'Taking any regular medication?':LANG==='ru'?'Принимаете лекарства регулярно?':"Doimiy dori-darmon ichasizmi?"}</div>
+      <div class="qs" style="margin-top:0;font-size:13px;">Taking any regular medication?</div>
       ${pillGroup('ctx_meds','💊','🚫',t('yes'),t('no'),true)}
     </div>
     <label class="consent-box" id="nb-assent-box" style="margin-top:16px;">
       <input type="checkbox" id="nb-assent-check" class="consent-cb">
-      <span>${LANG==='en'?"I understand this is a short memory task, my answers stay anonymous, and I can stop at any time.":LANG==='ru'?'Я понимаю, что это короткое задание на память, мои ответы анонимны, и я могу остановиться в любой момент.':"Bu qisqa xotira topshirig'i ekanini, javoblarim anonim qolishini va istalgan vaqtda to'xtatishim mumkinligini tushunaman."}</span>
+      <span>I understand this is a short memory task, my answers stay anonymous, and I can stop at any time.</span>
     </label>
   </div></div>
   <div class="brow">
@@ -1459,7 +1313,7 @@ function s6(){
 function startNbackGate(){
   const cb=document.getElementById('nb-assent-check');
   if(!cb||!cb.checked){
-    toast('⚠️ '+(LANG==='en'?'Please confirm you understand first':LANG==='ru'?'Пожалуйста, сначала подтвердите':'Iltimos, avval tasdiqlang'),'var(--yellow)');
+    toast('⚠️ Please confirm you understand first','var(--yellow)');
     const box=document.getElementById('nb-assent-box');
     if(box){box.classList.add('shake');setTimeout(()=>box.classList.remove('shake'),500);}
     return;
@@ -1550,8 +1404,8 @@ function s7(){
   const total=nbMode==='practice'?NB_PRACTICE_TOTAL:NB_TOTAL;
   const showMs=nbMode==='practice'?NB_PRACTICE_SHOW:NB_SHOW;
   const badge=nbMode==='practice'
-    ?`<div class="nb-mode-badge practice">🎓 ${LANG==='en'?'Practice — not scored':LANG==='ru'?'Практика — не оценивается':"Mashq — baholanmaydi"}</div>`
-    :`<div class="nb-mode-badge real">✅ ${LANG==='en'?'Real test':LANG==='ru'?'Настоящий тест':'Asosiy test'}</div>`;
+    ?`<div class="nb-mode-badge practice">🎓 Practice — not scored</div>`
+    :`<div class="nb-mode-badge real">✅ Real test</div>`;
   app.innerHTML=`<div class="screen active" id="sc7">
   <div class="card"><div class="card-inner">
     <div class="eyebrow">7 / 9 · ${t('nb_t')}</div>
@@ -1637,26 +1491,26 @@ function showPracticeExplain(isMatch,responded,ltr){
   let correct,title,body;
   if(isMatch&&responded){
     correct=true;
-    title=LANG==='en'?'✅ Correct!':LANG==='ru'?'✅ Верно!':"✅ To'g'ri!";
-    body=LANG==='en'?`"${ltr}" matched the letter shown 2 steps ago — pressing was the right call.`:LANG==='ru'?`«${ltr}» совпала с буквой, показанной 2 шага назад — вы правильно нажали.`:`"${ltr}" 2 qadam oldingi harf bilan bir xil edi — tugmani bosishingiz to'g'ri edi.`;
+    title='✅ Correct!';
+    body=`"${ltr}" matched the letter shown 2 steps ago — pressing was the right call.`;
   }else if(isMatch&&!responded){
     correct=false;
-    title=LANG==='en'?'❌ Missed it':LANG==='ru'?'❌ Пропущено':"❌ O'tkazib yubordingiz";
-    body=LANG==='en'?`"${ltr}" DID match the letter from 2 steps ago — you should have pressed the button here.`:LANG==='ru'?`«${ltr}» совпала с буквой 2 шага назад — здесь нужно было нажать кнопку.`:`"${ltr}" 2 qadam oldingi harf bilan bir xil EDI — bu yerda tugmani bosishingiz kerak edi.`;
+    title='❌ Missed it';
+    body=`"${ltr}" DID match the letter from 2 steps ago — you should have pressed the button here.`;
   }else if(!isMatch&&responded){
     correct=false;
-    title=LANG==='en'?'❌ Not quite':LANG==='ru'?'❌ Не совсем':"❌ Unday emas";
-    body=LANG==='en'?`"${ltr}" did NOT match the letter from 2 steps ago — no need to press here.`:LANG==='ru'?`«${ltr}» НЕ совпала с буквой 2 шага назад — здесь нажимать не нужно было.`:`"${ltr}" 2 qadam oldingi harf bilan bir xil EMAS edi — bu yerda tugmani bosishingiz shart emas edi.`;
+    title='❌ Not quite';
+    body=`"${ltr}" did NOT match the letter from 2 steps ago — no need to press here.`;
   }else{
     correct=true;
-    title=LANG==='en'?'✅ Correct — no press needed':LANG==='ru'?'✅ Верно — нажимать не нужно было':"✅ To'g'ri — bosishingiz shart emas edi";
-    body=LANG==='en'?`"${ltr}" didn't match — you correctly did nothing.`:LANG==='ru'?`«${ltr}» не совпала — вы правильно ничего не нажали.`:`"${ltr}" mos kelmadi — siz to'g'ri hech narsa bosmadingiz.`;
+    title='✅ Correct — no press needed';
+    body=`"${ltr}" didn't match — you correctly did nothing.`;
   }
   ex.innerHTML=`<div class="nb-explain ${correct?'ok':'err'}">
     <div class="nb-explain-title">${title}</div>
     <div>${body}</div>
   </div>
-  <button class="btn btn-primary" style="margin-top:14px;" onclick="nbPracticeNext()">${LANG==='en'?'Continue →':LANG==='ru'?'Далее →':'Davom etish →'}</button>`;
+  <button class="btn btn-primary" style="margin-top:14px;" onclick="nbPracticeNext()">Continue →</button>`;
 }
 function nbPracticeNext(){nbIdx++;runTrial();}
 function showPracticeSummary(){
@@ -1668,13 +1522,13 @@ function showPracticeSummary(){
     <div class="nb-summary-ring" style="--pct:${pct};">
       <div class="nb-summary-ring-inner">
         <div style="font-size:26px;font-weight:800;font-family:var(--font-display);">${nbPracticeCorrect}/${NB_PRACTICE_TOTAL}</div>
-        <div style="font-size:10px;color:var(--muted2);font-weight:700;text-transform:uppercase;">${LANG==='en'?'correct':LANG==='ru'?'верно':"to'g'ri"}</div>
+        <div style="font-size:10px;color:var(--muted2);font-weight:700;text-transform:uppercase;">correct</div>
       </div>
     </div>
-    <p style="text-align:center;max-width:340px;">${good?(LANG==='en'?"Nice work — you've got it! Ready for the real test?":LANG==='ru'?'Отлично — вы поняли принцип! Готовы к настоящему тесту?':"Ajoyib — qoidani tushundingiz! Asosiy testga tayyormisiz?"):(LANG==='en'?"Good start — a bit more practice will help it click even better.":LANG==='ru'?'Хорошее начало — чуть больше практики поможет закрепить.':"Yaxshi boshlanish — yana biroz mashq qilsangiz, yanada aniq tushunasiz.")}</p>
+    <p style="text-align:center;max-width:340px;">${good?"Nice work — you've got it! Ready for the real test?":"Good start — a bit more practice will help it click even better."}</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px;">
-      <button class="btn btn-ghost" onclick="retryPractice()">🔁 ${LANG==='en'?'Practice again':LANG==='ru'?'Практика ещё раз':'Yana mashq qilish'}</button>
-      <button class="btn btn-primary" onclick="startRealNback()">▶️ ${LANG==='en'?'Start real test':LANG==='ru'?'Начать настоящий тест':'Asosiy testni boshlash'}</button>
+      <button class="btn btn-ghost" onclick="retryPractice()">🔁 Practice again</button>
+      <button class="btn btn-primary" onclick="startRealNback()">▶️ Start real test</button>
     </div>`;
 }
 document.addEventListener('keydown',e=>{
@@ -1784,11 +1638,11 @@ function showFatiguePrompt(){
   stopTimerAnim();
   nbStopTracking(); // real N-back segment is over — stop counting focus loss from here on
   SUBMITTING_NBACK=false;
-  const labels=LANG==='en'?['Very easy','Easy','Okay','Hard','Very hard']:LANG==='ru'?['Очень легко','Легко','Нормально','Сложно','Очень сложно']:['Juda oson','Oson','O\u2018rtacha',"Qiyin","Juda qiyin"];
+  const labels=['Very easy','Easy','Okay','Hard','Very hard'];
   app.innerHTML=`<div class="screen active"><div class="card" style="text-align:center;"><div class="card-inner">
     <div style="font-size:44px;margin-bottom:10px;" id="fatigue-icon">🎚️</div>
-    <h2>${LANG==='en'?'One last quick question':LANG==='ru'?'Ещё один быстрый вопрос':'Yana bitta tezkor savol'}</h2>
-    <p style="margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;" id="fatigue-sub">${LANG==='en'?'How challenging did that memory game feel?':LANG==='ru'?'Насколько сложной показалась игра на память?':"Xotira o'yini qanchalik qiyin tuyuldi?"}</p>
+    <h2>One last quick question</h2>
+    <p style="margin-top:8px;max-width:400px;margin-left:auto;margin-right:auto;" id="fatigue-sub">How challenging did that memory game feel?</p>
     <div class="opts" style="margin-top:18px;" id="fatigue-opts">
       ${labels.map((l,i)=>`<div class="opt" id="fatigue-opt-${i+1}" onclick="submitFatigue(${i+1})"><div class="opt-ico">${['😌','🙂','😐','😣','🥵'][i]}</div><div class="opt-txt">${l}</div><div class="opt-chk">✓</div></div>`).join('')}
     </div>
@@ -1807,7 +1661,7 @@ function submitFatigue(rating){
   const icon=document.getElementById('fatigue-icon');
   if(icon)icon.textContent='⏳';
   const sub=document.getElementById('fatigue-sub');
-  if(sub)sub.textContent=LANG==='en'?'Saving your results\u2026':LANG==='ru'?'Сохраняем результаты\u2026':'Natijalar saqlanmoqda\u2026';
+  if(sub)sub.textContent='Saving your results\u2026';
   finishNback(rating);
 }
 async function finishNback(fatigue){
@@ -1893,7 +1747,7 @@ async function finishNback(fatigue){
     qc
   };
   if(PREVIEW_MODE){
-    toast('👁️ '+(LANG==='en'?'Preview mode \u2014 nothing was saved':LANG==='ru'?'Режим предпросмотра \u2014 ничего не сохранено':"Ko'rib chiqish rejimi \u2014 hech narsa saqlanmadi"),'var(--accent2)');
+    toast('👁️ Preview mode \u2014 nothing was saved','var(--accent2)');
     clearDraft();
     stopHeartbeat();
     S.step=8;render();
@@ -1906,7 +1760,7 @@ async function finishNback(fatigue){
   LAST_SAVED_PAYLOAD=payload; // lets the honesty check on the results screen update this exact row
   S.saveStatus=saved.shared?'server':'local-only';
   if(!saved.shared){
-    toast('⚠️ '+(LANG==='en'?'Saved only on this device - start the collector server for shared data':LANG==='ru'?'Сохранено только на этом устройстве':'Faqat shu qurilmada saqlandi'),'var(--yellow)');
+    toast('⚠️ Saved only on this device - start the collector server for shared data','var(--yellow)');
   }
   try{localStorage.setItem('tadqiqot_done','1');localStorage.setItem('tadqiqot_done_pid',S.pid||'');}catch(e){}
   clearDraft();
@@ -1943,9 +1797,9 @@ function s8(){
     return `<div class="dot ${cls}" style="animation:popIn .3s ${i*.028}s backwards"></div>`;
   }).join('');
   const saveBanner=S.saveStatus==='local-only'
-    ?`<div style="background:var(--red);color:#fff;padding:12px 16px;border-radius:var(--rs);border:2px solid var(--border2);box-shadow:4px 4px 0 rgba(0,0,0,.4);margin-bottom:14px;font-size:13px;font-weight:700;text-align:center;">⚠️ ${LANG==='en'?"Could NOT confirm this saved to the shared server \u2014 it's only stored in this browser right now.":LANG==='ru'?'НЕ удалось подтвердить сохранение на сервере \u2014 сейчас данные только в этом браузере.':"Bu javob serverga saqlanganini TASDIQLAB bo'lmadi \u2014 hozircha faqat shu brauzerda saqlangan."}</div>`
+    ?`<div style="background:var(--red);color:#fff;padding:12px 16px;border-radius:var(--rs);border:2px solid var(--border2);box-shadow:4px 4px 0 rgba(0,0,0,.4);margin-bottom:14px;font-size:13px;font-weight:700;text-align:center;">⚠️ Could NOT confirm this saved to the shared server \u2014 it's only stored in this browser right now.</div>`
     :S.saveStatus==='server'
-    ?`<div style="background:var(--green);color:#04180e;padding:10px 16px;border-radius:var(--rs);border:2px solid var(--border2);box-shadow:4px 4px 0 rgba(0,0,0,.4);margin-bottom:14px;font-size:13px;font-weight:700;text-align:center;">✅ ${LANG==='en'?'Confirmed saved to the server':LANG==='ru'?'Подтверждено: сохранено на сервере':'Serverga saqlangani tasdiqlandi'}</div>`
+    ?`<div style="background:var(--green);color:#04180e;padding:10px 16px;border-radius:var(--rs);border:2px solid var(--border2);box-shadow:4px 4px 0 rgba(0,0,0,.4);margin-bottom:14px;font-size:13px;font-weight:700;text-align:center;">✅ Confirmed saved to the server</div>`
     :'';
   app.innerHTML=`<style>@keyframes popIn{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}</style>
   <div class="screen active" id="sc8">
@@ -1957,7 +1811,7 @@ function s8(){
     <p class="muted2" style="margin-top:5px;">${t('res_sv')}</p>
   </div></div>
   <div class="card" style="text-align:center;"><div class="card-inner">
-    <div class="eyebrow" style="display:inline-flex;margin-bottom:14px;">N-back ${LANG==='en'?'Results':LANG==='ru'?'Результаты':'Natijalari'}</div>
+    <div class="eyebrow" style="display:inline-flex;margin-bottom:14px;">N-back Results</div>
     <div class="ring-wrap">
       <svg width="170" height="170" viewBox="0 0 170 170">
         <circle cx="85" cy="85" r="68" fill="none" stroke="var(--border)" stroke-width="10"/>
@@ -1968,57 +1822,57 @@ function s8(){
           <stop offset="0%" stop-color="#f97316"/><stop offset="50%" stop-color="#6366f1"/><stop offset="100%" stop-color="#38bdf8"/>
         </linearGradient></defs>
       </svg>
-      <div class="ring-center"><div class="ring-num">${acc}%</div><div class="ring-sub">${LANG==='en'?'overall acc':LANG==='ru'?'точность':'aniqlik'}</div></div>
+      <div class="ring-center"><div class="ring-num">${acc}%</div><div class="ring-sub">overall acc</div></div>
     </div>
     <div class="metrics" style="text-align:left;">
       <div class="metric"><div class="m-lbl">D-prime (d')</div><div class="m-val" style="color:${dpCol}">${dpLbl}</div></div>
-      <div class="metric"><div class="m-lbl">${LANG==='en'?'Criterion (c)':LANG==='ru'?'Критерий (c)':'Mezon (c)'}</div><div class="m-val acc">${bias!==null?bias:'N/A'}</div></div>
-      <div class="metric"><div class="m-lbl">${LANG==='en'?'Mean RT (hits)':LANG==='ru'?'Среднее ВР':'O\'rtacha RT'}</div><div class="m-val acc">${meanRT?meanRT+'ms':'—'}</div></div>
-      <div class="metric"><div class="m-lbl">${LANG==='en'?'Median RT':LANG==='ru'?'Медиана ВР':'Median RT'}</div><div class="m-val acc">${medRT?medRT+'ms':'—'}</div></div>
-      <div class="metric"><div class="m-lbl">${LANG==='en'?'Hits':LANG==='ru'?'Верных':'To\'g\'ri'}</div><div class="m-val ok">${hits}</div></div>
-      <div class="metric"><div class="m-lbl">${LANG==='en'?'Misses':LANG==='ru'?'Пропуски':'Miss'}</div><div class="m-val warn">${misses}</div></div>
-      <div class="metric"><div class="m-lbl">${LANG==='en'?'False alarms':LANG==='ru'?'Ложн. тревоги':'Noto\'g\'ri'}</div><div class="m-val bad">${fa}</div></div>
+      <div class="metric"><div class="m-lbl">Criterion (c)</div><div class="m-val acc">${bias!==null?bias:'N/A'}</div></div>
+      <div class="metric"><div class="m-lbl">Mean RT (hits)</div><div class="m-val acc">${meanRT?meanRT+'ms':'—'}</div></div>
+      <div class="metric"><div class="m-lbl">Median RT</div><div class="m-val acc">${medRT?medRT+'ms':'—'}</div></div>
+      <div class="metric"><div class="m-lbl">Hits</div><div class="m-val ok">${hits}</div></div>
+      <div class="metric"><div class="m-lbl">Misses</div><div class="m-val warn">${misses}</div></div>
+      <div class="metric"><div class="m-lbl">False alarms</div><div class="m-val bad">${fa}</div></div>
       <div class="metric"><div class="m-lbl">PSQI</div><div class="m-val ${psqiBad?'bad':'ok'}">${psqiG}/21</div></div>
-      <div class="metric full"><div class="m-lbl">${LANG==='en'?'Trial map':LANG==='ru'?'Карта попыток':'Sinov xaritasi'}</div>
+      <div class="metric full"><div class="m-lbl">Trial map</div>
         <div class="dots">${dots}</div>
         <div class="dot-leg">
-          <div class="dl"><span style="background:var(--green)"></span>${LANG==='en'?'Correct':LANG==='ru'?'Верно':"To'g'ri"}</div>
-          <div class="dl"><span style="background:var(--yellow)"></span>${LANG==='en'?'Missed':LANG==='ru'?'Пропущено':'O\'tkazildi'}</div>
-          <div class="dl"><span style="background:var(--red)"></span>${LANG==='en'?'False alarm':LANG==='ru'?'Ложная':'Noto\'g\'ri'}</div>
+          <div class="dl"><span style="background:var(--green)"></span>Correct</div>
+          <div class="dl"><span style="background:var(--yellow)"></span>Missed</div>
+          <div class="dl"><span style="background:var(--red)"></span>False alarm</div>
           <div class="dl"><span style="background:var(--border2)"></span>N/A</div>
         </div>
       </div>
     </div>
   </div></div>
   <div class="card"><div class="card-inner">
-    <div class="eyebrow" style="margin-bottom:12px;">${LANG==='en'?'Summary':LANG==='ru'?'Сводка':'Umumiy'}</div>
+    <div class="eyebrow" style="margin-bottom:12px;">Summary</div>
     <div class="res-block"><span class="res-ico">${migL?'🔵':'🟢'}</span><div><div class="res-lbl">ID-Migraine™</div><div class="res-val">${migL?t('mig_y'):t('mig_n')} (${S.migraine.score}/3)</div></div></div>
     <div class="res-block"><span class="res-ico">${psqiBad?'🔴':'🟢'}</span><div><div class="res-lbl">PSQI</div><div class="res-val">${psqiG}/21 — ${psqiBad?t('slp_b'):t('slp_g')}</div></div></div>
     <div class="res-block"><span class="res-ico">${perfE}</span><div><div class="res-lbl">N-back 2</div><div class="res-val">${acc}% · d' = ${dpLbl}</div></div></div>
     <div class="explain-box" style="margin-top:14px;">
-      <div class="explain-hd">💡 ${LANG==='en'?'What this means':LANG==='ru'?'Что это значит':'Bu nimani anglatadi'}</div>
+      <div class="explain-hd">💡 What this means</div>
       <div class="interp">${perf}</div>
       <p class="muted2" style="text-align:center;margin-top:12px;">${t('disc')}</p>
     </div>
   </div></div>
   <div class="card"><div class="card-inner">
-    <div class="eyebrow" style="margin-bottom:12px;">${LANG==='en'?'One last thing':LANG==='ru'?'Последнее':'Oxirgi savol'}</div>
-    <div class="qs" style="margin-bottom:4px;">${LANG==='en'?"No penalty either way \u2014 it just helps us know which results to trust. Be honest: did you pay full attention the whole way through, or did you rush / click through some parts?":LANG==='ru'?'Это никак не повлияет на вас \u2014 просто поможет понять, каким результатам доверять. Честно: вы были внимательны всё время, или где-то торопились / кликали не глядя?':"Bu sizga hech qanday ta'sir qilmaydi \u2014 shunchaki qaysi natijalarga ishonish mumkinligini bilishga yordam beradi. Rostini ayting: boshidan oxirigacha diqqat bilan javob berdingizmi, yoki qayerdadir shoshildingiz / qaramay bosdingiz?"}</div>
+    <div class="eyebrow" style="margin-bottom:12px;">One last thing</div>
+    <div class="qs" style="margin-bottom:4px;">No penalty either way \u2014 it just helps us know which results to trust. Be honest: did you pay full attention the whole way through, or did you rush / click through some parts?</div>
     <div class="opts" id="honesty-opts" style="margin-top:14px;">
       <div class="opt" id="honesty-opt-careful" onclick="submitHonesty('careful')">
-        <div class="opt-ico">✅</div><div class="opt-txt">${LANG==='en'?'I paid attention the whole way through':LANG==='ru'?'Я был(а) внимателен(на) всё время':"Boshidan oxirigacha diqqat bilan javob berdim"}</div><div class="opt-chk">✓</div>
+        <div class="opt-ico">✅</div><div class="opt-txt">I paid attention the whole way through</div><div class="opt-chk">✓</div>
       </div>
       <div class="opt" id="honesty-opt-rushed" onclick="submitHonesty('rushed')">
-        <div class="opt-ico">😅</div><div class="opt-txt">${LANG==='en'?'I rushed or clicked through part of it':LANG==='ru'?'Я торопился(лась) или кликал(а) не глядя на часть вопросов':"Ba'zi joylarda shoshildim yoki qaramay bosdim"}</div><div class="opt-chk">✓</div>
+        <div class="opt-ico">😅</div><div class="opt-txt">I rushed or clicked through part of it</div><div class="opt-chk">✓</div>
       </div>
       <div class="opt" id="honesty-opt-prefer_not" onclick="submitHonesty('prefer_not')">
-        <div class="opt-ico">🤐</div><div class="opt-txt">${LANG==='en'?'Prefer not to say':LANG==='ru'?'Предпочитаю не отвечать':"Aytishni xohlamayman"}</div><div class="opt-chk">✓</div>
+        <div class="opt-ico">🤐</div><div class="opt-txt">Prefer not to say</div><div class="opt-chk">✓</div>
       </div>
     </div>
-    <div id="honesty-thanks" style="display:none;margin-top:10px;text-align:center;font-size:13px;" class="muted2">${LANG==='en'?'Thanks for letting us know.':LANG==='ru'?'Спасибо, что сообщили.':'Xabar bergangiz uchun rahmat.'}</div>
+    <div id="honesty-thanks" style="display:none;margin-top:10px;text-align:center;font-size:13px;" class="muted2">Thanks for letting us know.</div>
   </div></div>
   <div style="text-align:center;margin-top:6px;">
-    <button class="btn btn-primary" onclick="S.step=9;render()">${LANG==='en'?'Finish':'Yakunlash'} →</button>
+    <button class="btn btn-primary" onclick="S.step=9;render()">Finish →</button>
   </div></div>`;
   setTimeout(()=>{
     const ring=document.getElementById('ring-c');
@@ -2037,8 +1891,8 @@ function s9(){
     <div class="ty-line"></div>
     <div class="confetti-row">🎊 🧠 🌿 💙 🎉 ✨</div>
     <p style="font-size:15.5px;line-height:1.8;max-width:460px;margin:6px auto;">${t('ty_s')}</p>
-    <div class="pid-chip" onclick="copyPid()" title="${LANG==='en'?'Tap to copy':LANG==='ru'?'Нажмите, чтобы скопировать':'Nusxalash uchun bosing'}">
-      <span class="pid-lbl">${LANG==='en'?'Your participant ID':LANG==='ru'?'Ваш ID участника':'Sizning ishtirokchi ID'}</span>
+    <div class="pid-chip" onclick="copyPid()" title="Tap to copy">
+      <span class="pid-lbl">Your participant ID</span>
       <span class="pid-val" id="pid-val">${esc(S.pid)}</span>
       <span class="pid-copy">📋</span>
     </div>
@@ -2055,26 +1909,12 @@ function s9(){
     </div>
   </div></div>
   <div class="card"><div class="card-inner">
-    <div class="eyebrow">${LANG==='en'?'What this study is actually about':LANG==='ru'?'О чём на самом деле это исследование':'Bu tadqiqot aslida nima haqida'}</div>
+    <div class="eyebrow">What this study is actually about</div>
     <div class="explain-box">
-      <p>${LANG==='en'
-        ?"You just helped us look at whether poor sleep might explain part of why some teens with migraines have more difficulty with tasks like the memory game you just played \u2014 not just the pain itself. If we're right, that matters: it means better sleep habits could genuinely help, alongside (not instead of) any medical treatment for migraine."
-        :LANG==='ru'
-        ?'Вы только что помогли нам изучить, может ли плохой сон объяснять часть того, почему у некоторых подростков с мигренью бывает сложнее справляться с такими заданиями, как игра на память, которую вы только что прошли \u2014 а не только сама боль. Если мы правы, это важно: значит, улучшение сна может реально помочь, наряду с лечением мигрени, а не вместо него.'
-        :"Siz hozir bizga bir muhim narsani tushunishga yordam berdingiz: nega migreni bor ba’zi o‘smirlar xotira yoki diqqat talab qiladigan vazifalarda qiynaladi? Bu faqat og‘riq sababmi yoki yomon uyqu ham bunga ta’sir qiladimi — shuni bilishga harakat qilyapmiz.<br><br>Agar bizning fikrimiz to‘g‘ri chiqsa, bu juda muhim. Bu shuni anglatadiki, yaxshi uyqu odatlari migrenni to‘liq davolamasa ham, unga qo‘shimcha ravishda yordam berishi mumkin.<br><br>Yana bir muhim narsa: agar bosh og‘rig‘i yoki uyqu muammolari sizda tez-tez bo‘lsa va hayotingizga ta’sir qilayotgan bo‘lsa, bu haqida ota-onangiz yoki shifokorga aytish kerak. Bu so‘rovnoma faqat tadqiqot uchun, tibbiy maslahat emas. Lekin bosh og‘rig‘i va uyqu muammolari ko‘pincha davolanishi mumkin."}
-      </p>
-      <p style="margin-top:12px;">${LANG==='en'
-        ?"One more thing \u2014 if headaches or sleep are actually a real, ongoing problem for you (not just for this survey), it's worth mentioning to a parent or doctor. This survey is research, not medical advice, but frequent headaches or poor sleep are very treatable when someone knows about them."
-        :LANG==='ru'
-        ?'И ещё: если головные боли или сон \u2014 реальная, постоянная проблема лично для вас (а не просто ответ в опросе), стоит рассказать об этом родителям или врачу. Этот опрос \u2014 исследование, а не медицинская консультация, но частые головные боли или плохой сон хорошо поддаются лечению, если о них знают.'
-        :"Bu so‘rovnoma faqat tadqiqot uchun, tibbiy maslahat emas. Lekin shuni unutmangki, tez-tez bosh og‘rig‘i yoki yomon uyqu muammolari ko‘pincha davolanishi mumkin."}
-      </p>
+      <p>You just helped us look at whether poor sleep might explain part of why some teens with migraines have more difficulty with tasks like the memory game you just played \u2014 not just the pain itself. If we're right, that matters: it means better sleep habits could genuinely help, alongside (not instead of) any medical treatment for migraine.</p>
+      <p style="margin-top:12px;">One more thing \u2014 if headaches or sleep are actually a real, ongoing problem for you (not just for this survey), it's worth mentioning to a parent or doctor. This survey is research, not medical advice, but frequent headaches or poor sleep are very treatable when someone knows about them.</p>
     </div>
-    <p class="muted2" style="margin-top:12px;text-align:center;">${LANG==='en'
-      ?'Want your data removed? Just message us your participant ID above \u2014 we can find and delete it, no questions asked.'
-      :LANG==='ru'
-      ?'Хотите удалить свои данные? Просто напишите нам ваш ID участника выше \u2014 мы найдём и удалим его, без вопросов.'
-      :"Ma'lumotlaringizni o'chirishni xohlaysizmi? Yuqoridagi ishtirokchi ID raqamingizni bizga yozing \u2014 hech qanday savolsiz topib o'chiramiz."}</p>
+    <p class="muted2" style="margin-top:12px;text-align:center;">Want your data removed? Just message us your participant ID above \u2014 we can find and delete it, no questions asked.</p>
   </div></div>
   <div style="text-align:center;margin-top:10px;">
     <button class="btn btn-ghost" onclick="resetSurvey()">${t('home')}</button>
@@ -2082,7 +1922,7 @@ function s9(){
 }
 function copyPid(){
   const v=S.pid||'';
-  const done=()=>toast('✅ '+(LANG==='en'?'Copied':LANG==='ru'?'Скопировано':'Nusxalandi'),'var(--green)');
+  const done=()=>toast('✅ Copied','var(--green)');
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(v).then(done).catch(()=>toast('⚠️ '+v,'var(--yellow)'));
   }else{
@@ -2192,7 +2032,7 @@ async function computeFingerprint(){
 async function testConnection(){
   const box=document.getElementById('conn-test-result');
   if(!box)return;
-  box.innerHTML=`<p class="muted2" style="margin-top:10px;">${LANG==='en'?'Testing\u2026':LANG==='ru'?'Проверка\u2026':'Tekshirilmoqda\u2026'}</p>`;
+  box.innerHTML=`<p class="muted2" style="margin-top:10px;">Testing\u2026</p>`;
   const results=[];
   try{
     const t0=performance.now();
@@ -2205,7 +2045,7 @@ async function testConnection(){
       results.push({ok:false,label:'GET /api/stats',detail:`HTTP ${res.status}`});
     }
   }catch(e){
-    results.push({ok:false,label:'GET /api/stats',detail:LANG==='en'?'Could not reach server at all (network/CORS/wrong URL)':'Serverga umuman ulanmadi'});
+    results.push({ok:false,label:'GET /api/stats',detail:'Could not reach server at all (network/CORS/wrong URL)'});
   }
   try{
     const res=await fetch(apiUrl('/api/next-id'),{cache:'no-store'});
@@ -2216,37 +2056,37 @@ async function testConnection(){
       results.push({ok:false,label:'GET /api/next-id',detail:`HTTP ${res.status}`});
     }
   }catch(e){
-    results.push({ok:false,label:'GET /api/next-id',detail:LANG==='en'?'Could not reach server':'Ulanmadi'});
+    results.push({ok:false,label:'GET /api/next-id',detail:'Could not reach server'});
   }
   const allOk=results.every(r=>r.ok);
   box.innerHTML=`<div style="margin-top:10px;padding:12px 14px;background:var(--card-hi);border:2px solid ${allOk?'var(--green)':'var(--red)'};border-radius:var(--rs);">
-    <p style="font-weight:700;margin-bottom:6px;">${allOk?'✅ '+(LANG==='en'?'Server is reachable and responding':LANG==='ru'?'Сервер доступен и отвечает':'Server ishlayapti va javob bermoqda'):'⚠️ '+(LANG==='en'?'Connection problem found':LANG==='ru'?'Обнаружена проблема со связью':'Ulanish muammosi topildi')}</p>
+    <p style="font-weight:700;margin-bottom:6px;">${allOk?'✅ Server is reachable and responding':'⚠️ Connection problem found'}</p>
     ${results.map(r=>`<p style="font-size:12px;color:var(--muted);margin-top:3px;">${r.ok?'✅':'❌'} ${r.label} \u2014 ${r.detail}</p>`).join('')}
-    <p style="font-size:12px;color:var(--muted2);margin-top:8px;">${LANG==='en'?'This only tests the connection \u2014 it does not test whether GitHub sync is working. Check your Render logs for that.':"Bu faqat ulanishni tekshiradi \u2014 GitHub sinxronizatsiyasini tekshirmaydi. Buning uchun Render loglariga qarang."}</p>
+    <p style="font-size:12px;color:var(--muted2);margin-top:8px;">This only tests the connection \u2014 it does not test whether GitHub sync is working. Check your Render logs for that.</p>
   </div>`;
 }
 async function resetEverything(){
   if(!ADMIN_ROWS||!ADMIN_ROWS.length){
-    if(!confirm(LANG==='en'?'No responses loaded to back up \u2014 reset anyway?':LANG==='ru'?'Нет данных для резервной копии \u2014 всё равно сбросить?':"Zaxira nusxa uchun ma'lumot yo'q \u2014 baribir tozalansinmi?"))return;
+    if(!confirm('No responses loaded to back up \u2014 reset anyway?'))return;
   }else{
-    toast(LANG==='en'?'Downloading a backup first\u2026':LANG==='ru'?'Сначала скачиваем резервную копию\u2026':'Avval zaxira nusxa yuklanmoqda\u2026','var(--accent2)');
+    toast('Downloading a backup first\u2026','var(--accent2)');
     await dlZIP(ADMIN_ROWS);
     await new Promise(r=>setTimeout(r,600));
   }
   const phrase='RESET';
-  const typed=prompt((LANG==='en'?`This permanently deletes ALL ${ADMIN_ROWS?.length||0} responses, on this device, the server, and GitHub \u2014 not just this browser. This cannot be undone.\n\nType ${phrase} to confirm:`:LANG==='ru'?`Это безвозвратно удалит ВСЕ ${ADMIN_ROWS?.length||0} ответов \u2014 на этом устройстве, сервере и GitHub. Отменить нельзя.\n\nВведите ${phrase} для подтверждения:`:`Bu ${ADMIN_ROWS?.length||0} ta javobni butunlay o'chiradi \u2014 bu qurilmada, serverda va GitHub'da. Bekor qilib bo'lmaydi.\n\nTasdiqlash uchun ${phrase} deb yozing:`));
-  if(typed!==phrase){toast(LANG==='en'?'Cancelled \u2014 nothing was deleted':LANG==='ru'?'Отменено \u2014 ничего не удалено':'Bekor qilindi \u2014 hech narsa o\u2018chirilmadi','var(--yellow)');return;}
-  const pw=prompt(LANG==='en'?'Confirm your admin password to proceed:':LANG==='ru'?'Подтвердите пароль администратора:':'Davom etish uchun admin parolni tasdiqlang:');
+  const typed=prompt(`This permanently deletes ALL ${ADMIN_ROWS?.length||0} responses, on this device, the server, and GitHub \u2014 not just this browser. This cannot be undone.\n\nType ${phrase} to confirm:`);
+  if(typed!==phrase){toast('Cancelled \u2014 nothing was deleted','var(--yellow)');return;}
+  const pw=prompt('Confirm your admin password to proceed:');
   if(pw===null)return;
   try{
     const res=await fetch(apiUrl('/api/admin-reset'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
     const j=await res.json().catch(()=>({ok:false}));
     if(!res.ok||!j.ok){
-      toast('⚠️ '+(LANG==='en'?'Reset failed \u2014 wrong password or server unreachable':LANG==='ru'?'Ошибка \u2014 неверный пароль или сервер недоступен':"Xatolik \u2014 parol noto'g'ri yoki serverga ulanmadi"),'var(--red)');
+      toast('⚠️ Reset failed \u2014 wrong password or server unreachable','var(--red)');
       return;
     }
   }catch(e){
-    toast('⚠️ '+(LANG==='en'?'Could not reach the server \u2014 nothing was reset':'Serverga ulanmadi \u2014 hech narsa tozalanmadi'),'var(--red)');
+    toast('⚠️ Could not reach the server \u2014 nothing was reset','var(--red)');
     return;
   }
   // Also clear this device's own local copies so the admin's browser doesn't show stale rows
@@ -2259,7 +2099,7 @@ async function resetEverything(){
     localStorage.removeItem('tadqiqot_start_logged');
     sessionStorage.removeItem('tadqiqot_start_logged');
   }catch(e){}
-  toast('✅ '+(LANG==='en'?'Everything reset':LANG==='ru'?'Всё сброшено':'Hammasi tozalandi'),'var(--green)');
+  toast('✅ Everything reset','var(--green)');
   renderAdmin();
 }
 async function adminGo(){
@@ -2295,7 +2135,7 @@ async function renderAdmin(){
       if(res.ok){
         const j=await res.json();
         const rate=j.starts>0?Math.round((j.completions/j.starts)*100):null;
-        funnelHtml=`<p style="margin-top:4px;">${LANG==='en'?'Started':'Boshlangan'}: <strong>${j.starts}</strong> · ${LANG==='en'?'Completed':'Tugallangan'}: <strong>${j.completions}</strong>${rate!==null?` · ${LANG==='en'?'Completion rate':"Tugallash darajasi"}: <strong>${rate}%</strong>`:''}${typeof j.dropouts==='number'?` · ${LANG==='en'?'Tracked dropouts':"Aniqlangan tashlab ketishlar"}: <strong>${j.dropouts}</strong>`:''}</p>`;
+        funnelHtml=`<p style="margin-top:4px;">Started: <strong>${j.starts}</strong> · Completed: <strong>${j.completions}</strong>${rate!==null?` · Completion rate: <strong>${rate}%</strong>`:''}${typeof j.dropouts==='number'?` · Tracked dropouts: <strong>${j.dropouts}</strong>`:''}</p>`;
       }
     }catch(e){}
   }
@@ -2311,19 +2151,19 @@ async function renderAdmin(){
       <button class="btn btn-primary" onclick="dlXLSX(ADMIN_ROWS)">📥 Excel (XLSX)</button>
       <button class="btn btn-ghost" onclick="dlCSV(ADMIN_ROWS)">📥 CSV</button>
       <button class="btn btn-ghost" onclick="dlJSON(ADMIN_ROWS)">📥 JSON</button>
-      <button class="btn btn-ghost" onclick="dlZIP(ADMIN_ROWS)">📦 ${LANG==='en'?'Everything (ZIP)':LANG==='ru'?'Всё (ZIP)':'Hammasi (ZIP)'}</button>
+      <button class="btn btn-ghost" onclick="dlZIP(ADMIN_ROWS)">📦 Everything (ZIP)</button>
       <button class="btn btn-ghost" onclick="document.getElementById('json-import').click()">📤 Import JSON</button>
       <button class="btn btn-ghost" onclick="renderAdmin()">↻ Refresh</button>
-      <button class="btn btn-ghost" onclick="testConnection()">🔌 ${LANG==='en'?'Test Connection':LANG==='ru'?'Проверить связь':'Ulanishni tekshirish'}</button>
+      <button class="btn btn-ghost" onclick="testConnection()">🔌 Test Connection</button>
       <button class="btn btn-ghost" onclick="S.step=0;render()">← Back</button>
       <input id="json-import" type="file" accept=".json,application/json" style="display:none" onchange="importJSON(this.files[0]);this.value='';">
     </div>
     <div id="conn-test-result"></div>
     <div style="margin-top:14px;padding-top:14px;border-top:2px dashed rgba(244,66,94,.4);">
-      <button class="btn" style="background:var(--red);border-color:var(--red);color:#fff;box-shadow:4px 4px 0 rgba(0,0,0,.55);" onclick="resetEverything()">☠️ ${LANG==='en'?'Reset Everything (wipe all data)':LANG==='ru'?'Сбросить всё (удалить все данные)':'Hammasini tozalash (barcha ma\u2018lumotlarni o\u2018chirish)'}</button>
-      <p class="muted2" style="margin-top:6px;">${LANG==='en'?'Permanently deletes every response, resets participant IDs to 1, and clears funnel stats \u2014 on this device, the server, and GitHub. Cannot be undone.':LANG==='ru'?'Безвозвратно удаляет все ответы, сбрасывает ID участников до 1 и очищает статистику воронки \u2014 на этом устройстве, сервере и GitHub. Отменить нельзя.':"Barcha javoblarni butunlay o'chiradi, ishtirokchi ID'larini 1 dan boshlaydi va statistikani tozalaydi \u2014 bu qurilmada, serverda va GitHub'da. Bekor qilib bo'lmaydi."}</p>
+      <button class="btn" style="background:var(--red);border-color:var(--red);color:#fff;box-shadow:4px 4px 0 rgba(0,0,0,.55);" onclick="resetEverything()">☠️ Reset Everything (wipe all data)</button>
+      <p class="muted2" style="margin-top:6px;">Permanently deletes every response, resets participant IDs to 1, and clears funnel stats \u2014 on this device, the server, and GitHub. Cannot be undone.</p>
     </div>
-    <input type="text" class="admin-search" id="admin-search" placeholder="${LANG==='en'?'Search by participant ID, age, sex…':'Qidirish: ID, yosh, jinsi…'}" oninput="filterAdmin(this.value)">
+    <input type="text" class="admin-search" id="admin-search" placeholder="Search by participant ID, age, sex…" oninput="filterAdmin(this.value)">
     <div class="admin-note">
       To collect everyone in one dataset, run <strong>server.js</strong> and share the shown network URL. Opening this HTML directly still works, but each device will only keep its own backup unless the collector is running.<br>
       This table shows summary scores only (ID-Migraine, PSQI, N-back). Every individual question answer is included in the Excel/CSV/JSON export.<br>
@@ -2333,19 +2173,19 @@ async function renderAdmin(){
     </div>
   </div></div>
   <div class="card"><div class="card-inner">
-    <div class="eyebrow" style="margin-bottom:10px;">${LANG==='en'?'Sample size target':LANG==='ru'?'Целевой размер выборки':'Namuna hajmi maqsadi'}</div>
+    <div class="eyebrow" style="margin-bottom:10px;">Sample size target</div>
     ${renderSampleTargetHtml(rows.length,sampleTarget)}
   </div></div>
   ${rows.length>=5?`<div class="card"><div class="card-inner">
-    <div class="eyebrow" style="margin-bottom:10px;">${LANG==='en'?'Ceiling / floor check':LANG==='ru'?'Проверка потолка/пола':'Chegara effekti tekshiruvi'}</div>
+    <div class="eyebrow" style="margin-bottom:10px;">Ceiling / floor check</div>
     ${renderCeilingFloorHtml(rows)}
   </div></div>`:''}
   ${rows.length>=3?`<div class="card"><div class="card-inner">
-    <div class="eyebrow" style="margin-bottom:10px;">${LANG==='en'?'Quick look: sleep vs. working memory':LANG==='ru'?'Быстрый обзор: сон и рабочая память':"Tezkor ko'rinish: uyqu va ishchi xotira"}</div>
+    <div class="eyebrow" style="margin-bottom:10px;">Quick look: sleep vs. working memory</div>
     ${renderScatterSVG(rows)}
   </div></div>`:''}
   ${rows.length>=3?`<div class="card"><div class="card-inner">
-    <div class="eyebrow" style="margin-bottom:10px;">${LANG==='en'?'Migraine group comparison':LANG==='ru'?'Сравнение групп по мигрени':'Migren guruhlari solishtiruvi'}</div>
+    <div class="eyebrow" style="margin-bottom:10px;">Migraine group comparison</div>
     ${renderGroupBarSVG(rows)}
   </div></div>`:''}`;
   app.innerHTML=s+`<div class="card"><div class="card-inner"><div class="tbl-wrap" id="admin-tbl-wrap"></div></div></div>`;
@@ -2354,10 +2194,10 @@ async function renderAdmin(){
 function renderGroupBarSVG(rows){
   const mig=rows.filter(r=>r.migraine?.likely&&typeof r.nback?.dprime==='number'&&typeof r.psqi?.global==='number');
   const noMig=rows.filter(r=>!r.migraine?.likely&&typeof r.nback?.dprime==='number'&&typeof r.psqi?.global==='number');
-  if(mig.length<2||noMig.length<2)return `<p class="muted2">${LANG==='en'?'Need at least 2 participants in each group to compare.':'Solishtirish uchun har guruhda kamida 2 ta ishtirokchi kerak.'}</p>`;
+  if(mig.length<2||noMig.length<2)return `<p class="muted2">Need at least 2 participants in each group to compare.</p>`;
   const avg=(arr,key)=>arr.reduce((s,r)=>s+(key==='d'?r.nback.dprime:r.psqi.global),0)/arr.length;
   const bars=[
-    {label:LANG==='en'?"d\u2032":"d\u2032",migV:avg(mig,'d'),noV:avg(noMig,'d'),max:4},
+    {label:"d\u2032",migV:avg(mig,'d'),noV:avg(noMig,'d'),max:4},
     {label:'PSQI',migV:avg(mig,'p'),noV:avg(noMig,'p'),max:21}
   ];
   const W=320,H=170,barH=20,gap=10,groupGap=46,ML=64,top=18;
@@ -2374,22 +2214,22 @@ function renderGroupBarSVG(rows){
   });
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;max-width:360px;display:block;margin:0 auto;">
     ${svgBars}
-    <rect x="${ML}" y="${H-24}" width="10" height="10" rx="2" fill="var(--accent2)"/><text x="${ML+15}" y="${H-15}" font-size="8.5" fill="var(--muted)" font-family="Inter,sans-serif">${LANG==='en'?'no migraine':'migren yo\u2018q'} (n=${noMig.length})</text>
-    <rect x="${ML+120}" y="${H-24}" width="10" height="10" rx="2" fill="var(--accent)"/><text x="${ML+135}" y="${H-15}" font-size="8.5" fill="var(--muted)" font-family="Inter,sans-serif">${LANG==='en'?'migraine likely':'migren ehtimoli'} (n=${mig.length})</text>
+    <rect x="${ML}" y="${H-24}" width="10" height="10" rx="2" fill="var(--accent2)"/><text x="${ML+15}" y="${H-15}" font-size="8.5" fill="var(--muted)" font-family="Inter,sans-serif">no migraine (n=${noMig.length})</text>
+    <rect x="${ML+120}" y="${H-24}" width="10" height="10" rx="2" fill="var(--accent)"/><text x="${ML+135}" y="${H-15}" font-size="8.5" fill="var(--muted)" font-family="Inter,sans-serif">migraine likely (n=${mig.length})</text>
   </svg>
-  <p class="muted2" style="margin-top:6px;text-align:center;">${LANG==='en'?'Mean values \u2014 a quick sanity check, not a statistical test.':"O'rtacha qiymatlar \u2014 tezkor tekshiruv, statistik test emas."}</p>`;
+  <p class="muted2" style="margin-top:6px;text-align:center;">Mean values \u2014 a quick sanity check, not a statistical test.</p>`;
 }
 function renderCeilingFloorHtml(rows){
   const dprimes=rows.map(r=>r.nback?.dprime).filter(v=>typeof v==='number'&&!isNaN(v));
-  if(!dprimes.length)return `<p class="muted2">${LANG==='en'?'No n-back data yet.':"Ma'lumot yo'q."}</p>`;
+  if(!dprimes.length)return `<p class="muted2">No n-back data yet.</p>`;
   const ceiling=dprimes.filter(d=>d>=3.5).length;
   const floor=dprimes.filter(d=>d<=0).length;
   const ceilPct=Math.round((ceiling/dprimes.length)*100);
   const floorPct=Math.round((floor/dprimes.length)*100);
   const warn=ceilPct>15||floorPct>15;
-  return `<p>${LANG==='en'?'At ceiling (d\u2032\u22653.5)':'d\u2032\u22653.5'}: <strong>${ceiling}</strong> (${ceilPct}%) · ${LANG==='en'?'At floor (d\u2032\u22640)':'d\u2032\u22640'}: <strong>${floor}</strong> (${floorPct}%)</p>
-    ${warn?`<p style="margin-top:8px;color:var(--yellow);font-weight:600;">⚠️ ${LANG==='en'?"More than 15% of participants are at a ceiling or floor \u2014 the task may not be discriminating ability well in this sample. Worth keeping an eye on as data comes in.":"Ishtirokchilarning 15% dan ko'pi chegara qiymatlarda \u2014 test farqlarni yaxshi ajratmayotgan bo'lishi mumkin."}</p>`
-    :`<p class="muted2" style="margin-top:8px;">${LANG==='en'?'Looks healthy \u2014 no major ceiling/floor concentration yet.':"Hozircha muammo yo'q ko'rinadi."}</p>`}`;
+  return `<p>At ceiling (d\u2032\u22653.5): <strong>${ceiling}</strong> (${ceilPct}%) · At floor (d\u2032\u22640): <strong>${floor}</strong> (${floorPct}%)</p>
+    ${warn?`<p style="margin-top:8px;color:var(--yellow);font-weight:600;">⚠️ More than 15% of participants are at a ceiling or floor \u2014 the task may not be discriminating ability well in this sample. Worth keeping an eye on as data comes in.</p>`
+    :`<p class="muted2" style="margin-top:8px;">Looks healthy \u2014 no major ceiling/floor concentration yet.</p>`}`;
 }
 async function getSampleTarget(){
   try{
@@ -2406,17 +2246,17 @@ async function getSampleTarget(){
 }
 async function setSampleTarget(){
   const cur=await getSampleTarget();
-  const v=prompt((LANG==='en'?'Target number of participants (e.g. from a power analysis):':LANG==='ru'?'Целевое число участников (напр., из анализа мощности):':"Ishtirokchilar maqsadli soni (masalan, power analysis asosida):"),cur);
+  const v=prompt('Target number of participants (e.g. from a power analysis):',cur);
   if(v===null)return;
   const n=parseInt(v,10);
-  if(!n||n<1){toast('⚠️ '+(LANG==='en'?'Enter a valid number':'Noto\u2018g\u2018ri son'),'var(--yellow)');return;}
+  if(!n||n<1){toast('⚠️ Enter a valid number','var(--yellow)');return;}
   let savedToServer=false;
   try{
     const res=await fetch(apiUrl('/api/target'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target:n})});
     savedToServer=res.ok;
   }catch(e){}
   if(!savedToServer){
-    toast('⚠️ '+(LANG==='en'?'Could not reach the server \u2014 saved on this device only':LANG==='ru'?'Сервер недоступен \u2014 сохранено только на этом устройстве':'Serverga ulanmadi \u2014 faqat shu qurilmada saqlandi'),'var(--yellow)');
+    toast('⚠️ Could not reach the server \u2014 saved on this device only','var(--yellow)');
   }
   try{localStorage.setItem('tadqiqot_target',String(n));}catch(e){}
   renderAdmin();
@@ -2427,8 +2267,8 @@ function renderSampleTargetHtml(count,target){
     <div style="height:10px;background:var(--card-hi);border:2px solid var(--border2);border-radius:6px;overflow:hidden;margin-bottom:12px;">
       <div style="height:100%;width:${pct}%;background:var(--accent);"></div>
     </div>
-    <button class="btn btn-ghost" style="padding:9px 16px;font-size:12.5px;" onclick="setSampleTarget()">${LANG==='en'?'Set target':LANG==='ru'?'Задать цель':"Maqsadni belgilash"}</button>
-    <p class="muted2" style="margin-top:10px;">${LANG==='en'?'Tip: use a power analysis (e.g. G*Power) for your mediation model to pick a defensible target rather than a round number.':LANG==='ru'?'Совет: используйте анализ мощности (напр., G*Power), чтобы обосновать целевое число.':"Maslahat: G*Power kabi vositalar bilan power analysis qilib, asoslangan maqsad sonini tanlang."}</p>`;
+    <button class="btn btn-ghost" style="padding:9px 16px;font-size:12.5px;" onclick="setSampleTarget()">Set target</button>
+    <p class="muted2" style="margin-top:10px;">Tip: use a power analysis (e.g. G*Power) for your mediation model to pick a defensible target rather than a round number.</p>`;
 }
 function renderScatterSVG(rows){
   const pts=rows.map(r=>({
@@ -2436,7 +2276,7 @@ function renderScatterSVG(rows){
     y:r.nback?.dprime,
     mig:!!r.migraine?.likely
   })).filter(p=>typeof p.x==='number'&&typeof p.y==='number'&&!isNaN(p.x)&&!isNaN(p.y));
-  if(pts.length<3)return `<p class="muted2">${LANG==='en'?'Not enough complete rows yet to chart.':"Ko'rsatish uchun yetarli ma'lumot yo'q."}</p>`;
+  if(pts.length<3)return `<p class="muted2">Not enough complete rows yet to chart.</p>`;
   const W=320,H=220,ML=34,MB=28,MT=10,MR=10;
   const xMin=0,xMax=21;
   let yMin=Math.min(-1,...pts.map(p=>p.y)),yMax=Math.max(4,...pts.map(p=>p.y));
@@ -2450,7 +2290,7 @@ function renderScatterSVG(rows){
     <text x="${(ML+W-MR)/2}" y="${H-4}" text-anchor="middle" font-size="9" fill="var(--muted2)" font-family="Inter,sans-serif">PSQI global (0\u201321)</text>
     <text x="10" y="${(MT+H-MB)/2}" text-anchor="middle" font-size="9" fill="var(--muted2)" font-family="Inter,sans-serif" transform="rotate(-90 10 ${(MT+H-MB)/2})">d\u2032</text>
     ${dots}
-    <circle cx="${W-90}" cy="14" r="4" fill="var(--accent)"/><text x="${W-82}" y="17" font-size="8.5" fill="var(--muted)" font-family="Inter,sans-serif">${LANG==='en'?'migraine likely':'migren ehtimoli'}</text>
+    <circle cx="${W-90}" cy="14" r="4" fill="var(--accent)"/><text x="${W-82}" y="17" font-size="8.5" fill="var(--muted)" font-family="Inter,sans-serif">migraine likely</text>
   </svg>`;
 }
 const ADMIN_SUMMARY_KEYS=['participant_id','date','age','sex','language','duration_sec','mig_score','mig_likely','psqi_global','nback_accuracy_pct','nback_dprime','nback_criterion_c','nback_mean_rt_ms','nback_median_rt_ms','qc_exclude_recommended','qc_attention_check_passed','qc_attention_check_2_passed','qc_fast_completion_flag','qc_anticipatory_response_flag','qc_straight_lining_flag','qc_nb_no_response_flag','qc_nb_faded_out_flag','qc_nb_distracted_flag','qc_honeypot_flag','qc_duplicate_suspect_flag'];
@@ -2461,35 +2301,35 @@ function renderAdminTable(){
   const keys=ADMIN_SUMMARY_KEYS;
   const q=ADMIN_FILTER;
   const filtered=q?flat.filter(r=>Object.values(r).some(v=>String(v??'').toLowerCase().includes(q))):flat;
-  const head=`<th>${LANG==='en'?'Delete':'O\u2018chirish'}</th>`+keys.map(k=>`<th>${esc(ADMIN_LABELS[k]||k)}</th>`).join('');
+  const head=`<th>Delete</th>`+keys.map(k=>`<th>${esc(ADMIN_LABELS[k]||k)}</th>`).join('');
   const body=filtered.map(r=>{
     const cells=keys.map(k=>{
       let v=r[k];
       if(k==='mig_likely')v=v?'Yes':'No';
       if(k==='date'&&v)v=new Date(v).toLocaleString();
-      if(k==='qc_attention_check_passed')return `<td>${v?'✅':'⚠️ '+(LANG==='en'?'Failed':LANG==='ru'?'Не прошёл':"O'tmadi")}</td>`;
-      if(k==='qc_fast_completion_flag')return `<td>${v?'⚡ '+(LANG==='en'?'Fast':LANG==='ru'?'Быстро':'Tez'):'✅'}</td>`;
-      if(k==='qc_anticipatory_response_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Anticipatory':LANG==='ru'?'Опережающие':'Erta bosilgan'):'✅'}</td>`;
-      if(k==='qc_straight_lining_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Straight-lined':LANG==='ru'?'Одинаковые':'Bir xil javob'):'✅'}</td>`;
-      if(k==='qc_nb_no_response_flag')return `<td>${v?'🚫 '+(LANG==='en'?'No response':LANG==='ru'?'Нет ответов':'Javob yo\u2018q'):'✅'}</td>`;
-      if(k==='qc_nb_faded_out_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Faded out':LANG==='ru'?'Затих':'So\u2018ndi'):'✅'}</td>`;
-      if(k==='qc_nb_distracted_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Tab-switched':LANG==='ru'?'Переключился':'Boshqa oynaga o\u2018tdi'):'✅'}</td>`;
-      if(k==='qc_nb_rt_flat_flag')return `<td>${v?'⚠️ '+(LANG==='en'?'Flat RT':LANG==='ru'?'Плоское ВР':'Bir xil RT'):'✅'}</td>`;
-      if(k==='qc_honeypot_flag')return `<td>${v?'🤖 '+(LANG==='en'?'BOT':LANG==='ru'?'БОТ':'BOT'):'✅'}</td>`;
-      if(k==='qc_instant_click_flag')return `<td>${v?'⚡ '+(LANG==='en'?'Instant click':LANG==='ru'?'Мгновенный клик':'Zudlik bilan bosildi'):'✅'}</td>`;
-      if(k==='qc_duplicate_suspect_flag')return `<td>${v?'👥 '+(LANG==='en'?'Possible repeat':LANG==='ru'?'Возможен повтор':"Ehtimol qayta"):'✅'}</td>`;
-      if(k==='qc_attention_check_2_passed')return `<td>${v?'✅':'⚠️ '+(LANG==='en'?'Failed':LANG==='ru'?'Не пройдено':'Xato')}</td>`;
+      if(k==='qc_attention_check_passed')return `<td>${v?'✅':'⚠️ Failed'}</td>`;
+      if(k==='qc_fast_completion_flag')return `<td>${v?'⚡ Fast':'✅'}</td>`;
+      if(k==='qc_anticipatory_response_flag')return `<td>${v?'⚠️ Anticipatory':'✅'}</td>`;
+      if(k==='qc_straight_lining_flag')return `<td>${v?'⚠️ Straight-lined':'✅'}</td>`;
+      if(k==='qc_nb_no_response_flag')return `<td>${v?'🚫 No response':'✅'}</td>`;
+      if(k==='qc_nb_faded_out_flag')return `<td>${v?'⚠️ Faded out':'✅'}</td>`;
+      if(k==='qc_nb_distracted_flag')return `<td>${v?'⚠️ Tab-switched':'✅'}</td>`;
+      if(k==='qc_nb_rt_flat_flag')return `<td>${v?'⚠️ Flat RT':'✅'}</td>`;
+      if(k==='qc_honeypot_flag')return `<td>${v?'🤖 BOT':'✅'}</td>`;
+      if(k==='qc_instant_click_flag')return `<td>${v?'⚡ Instant click':'✅'}</td>`;
+      if(k==='qc_duplicate_suspect_flag')return `<td>${v?'👥 Possible repeat':'✅'}</td>`;
+      if(k==='qc_attention_check_2_passed')return `<td>${v?'✅':'⚠️ Failed'}</td>`;
       if(k==='qc_honesty_self_report'){
-        const lbl=v==='careful'?(LANG==='en'?'Careful':LANG==='ru'?'Внимательно':'Diqqat bilan')
-          :v==='rushed'?(LANG==='en'?'⚠️ Rushed':LANG==='ru'?'⚠️ Торопился':'⚠️ Shoshildi')
-          :v==='prefer_not'?(LANG==='en'?'Declined':LANG==='ru'?'Отказался':'Bildirmadi')
+        const lbl=v==='careful'?'Careful'
+          :v==='rushed'?'⚠️ Rushed'
+          :v==='prefer_not'?'Declined'
           :'—';
         return `<td>${lbl}</td>`;
       }
-      if(k==='qc_exclude_recommended')return `<td>${v?'🚫 '+(LANG==='en'?'Review':LANG==='ru'?'Проверить':'Tekshirish'):'✅ '+(LANG==='en'?'OK':'OK')}</td>`;
+      if(k==='qc_exclude_recommended')return `<td>${v?'🚫 Review':'✅ OK'}</td>`;
       return `<td>${esc(v)}</td>`;
     }).join('');
-    const delTitle=LANG==='en'?'Delete participant':'Ishtirokchini o\u2018chirish';
+    const delTitle='Delete participant';
     return `<tr><td><button type="button" class="row-del" data-pid="${esc(r.__pid)}" data-date="${esc(r.__date)}" title="${delTitle}">🗑</button></td>${cells}</tr>`;
   }).join('');
   wrap.innerHTML=`<table>
@@ -2504,9 +2344,9 @@ async function deleteParticipant(pid,dateFallback){
   // Some legacy/imported rows may be missing a clean pid \u2014 fall back to matching by
   // the exact save timestamp so every row on screen is still deletable.
   const identity=pid||dateFallback;
-  if(!identity){toast('⚠️ '+(LANG==='en'?'Could not identify this row':'Bu qatorni aniqlab bo\u2018lmadi'),'var(--red)');return;}
-  const label=pid||(LANG==='en'?'this row':'bu qator');
-  if(!confirm((LANG==='en'?'Delete participant':'Ishtirokchini o\u2018chirish')+' "'+label+'"? '+(LANG==='en'?'This cannot be undone.':'Buni bekor qilib bo\u2018lmaydi.')))return;
+  if(!identity){toast('⚠️ Could not identify this row','var(--red)');return;}
+  const label=pid||'this row';
+  if(!confirm('Delete participant "'+label+'"? This cannot be undone.'))return;
   let serverConfirmed=false,serverReachable=false;
   try{
     const res=await fetch(apiUrl('/api/responses/'+encodeURIComponent(identity)),{method:'DELETE'});
@@ -2543,11 +2383,11 @@ async function deleteParticipant(pid,dateFallback){
     }
   }catch(e){}
   if(STORE_STATUS.api&&serverReachable&&!serverConfirmed){
-    toast('⚠️ '+(LANG==='en'?'Server did not confirm deletion \u2014 check the collector is running and try again':'Server o\u2018chirishni tasdiqlamadi \u2014 qayta urinib ko\u2018ring'),'var(--yellow)');
+    toast('⚠️ Server did not confirm deletion \u2014 check the collector is running and try again','var(--yellow)');
   }else if(STORE_STATUS.api&&!serverReachable){
-    toast('⚠️ '+(LANG==='en'?'Could not reach the collector server \u2014 removed locally only':'Serverga ulanib bo\u2018lmadi'),'var(--yellow)');
+    toast('⚠️ Could not reach the collector server \u2014 removed locally only','var(--yellow)');
   }else{
-    toast('🗑 '+(LANG==='en'?'Deleted':'O\u2018chirildi')+' '+label,'var(--green)');
+    toast('🗑 Deleted '+label,'var(--green)');
   }
   await renderAdmin();
 }
@@ -2636,7 +2476,7 @@ function flattenRow(r){
 const CODEBOOK=[
   {Variable:'participant_id',Description:'Unique participant identifier, assigned sequentially (participant1, participant2, ...)',Range:'text'},
   {Variable:'date',Description:'Timestamp the response was submitted (ISO 8601, UTC)',Range:'datetime'},
-  {Variable:'language',Description:'Language the participant took the survey in',Range:'uz / ru / en'},
+  {Variable:'language',Description:'Language the participant took the survey in (this version of the survey is English-only)',Range:'en'},
   {Variable:'duration_sec',Description:'Total time taken to complete the whole survey',Range:'seconds'},
   {Variable:'age',Description:'Self-reported age. "18plus" rows never reach this file \u2014 they are blocked before saving.',Range:'12\u201318'},
   {Variable:'sex',Description:'Self-reported sex',Range:'f / m / pns (prefer not to say)'},
@@ -2763,23 +2603,21 @@ function saveDraft(){
   if(S.step<=0||S.step>=7)return; // nothing meaningful to resume before step 1 or once the memory task starts
   try{
     localStorage.setItem('tadqiqot_draft',JSON.stringify({
-      step:S.step,demo:S.demo,migraine:S.migraine,psqi:S.psqi,lang:LANG,t0:S.t0,savedAt:Date.now()
+      step:S.step,demo:S.demo,migraine:S.migraine,psqi:S.psqi,t0:S.t0,savedAt:Date.now()
     }));
   }catch(e){}
 }
 function clearDraft(){try{localStorage.removeItem('tadqiqot_draft');}catch(e){}}
 function showResumePrompt(draft){
   const mins=Math.max(1,Math.round((Date.now()-(draft.savedAt||Date.now()))/60000));
-  const timeAgo=mins<60
-    ?(LANG==='en'?`${mins} min ago`:LANG==='ru'?`${mins} мин назад`:`${mins} daqiqa oldin`)
-    :(LANG==='en'?`${Math.round(mins/60)}h ago`:LANG==='ru'?`${Math.round(mins/60)} ч назад`:`${Math.round(mins/60)} soat oldin`);
+  const timeAgo=mins<60?`${mins} min ago`:`${Math.round(mins/60)}h ago`;
   app.innerHTML=`<div class="screen active"><div class="card"><div class="card-inner" style="text-align:center;padding:38px 22px;">
     <div style="font-size:50px;margin-bottom:14px;">👋</div>
-    <h2 style="margin-bottom:10px;">${LANG==='en'?'Welcome back!':LANG==='ru'?'С возвращением!':'Xush kelibsiz!'}</h2>
-    <p style="max-width:360px;margin:0 auto;">${LANG==='en'?`You have an unfinished survey from ${timeAgo}. Continue where you left off?`:LANG==='ru'?`У вас есть незавершённый опрос (${timeAgo}). Продолжить с того места, где остановились?`:`Sizda tugallanmagan so'rovnoma bor (${timeAgo}). Qoldirgan joyingizdan davom etasizmi?`}</p>
+    <h2 style="margin-bottom:10px;">Welcome back!</h2>
+    <p style="max-width:360px;margin:0 auto;">You have an unfinished survey from ${timeAgo}. Continue where you left off?</p>
     <div style="display:flex;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap;">
-      <button class="btn btn-ghost" onclick="discardDraftAndStart()">${LANG==='en'?'Start over':LANG==='ru'?'Начать заново':'Qaytadan boshlash'}</button>
-      <button class="btn btn-primary" onclick="resumeDraft()">${LANG==='en'?'Continue →':LANG==='ru'?'Продолжить →':'Davom etish →'}</button>
+      <button class="btn btn-ghost" onclick="discardDraftAndStart()">Start over</button>
+      <button class="btn btn-primary" onclick="resumeDraft()">Continue →</button>
     </div>
   </div></div></div>`;
   window.scrollTo(0,0);
@@ -2792,10 +2630,6 @@ function resumeDraft(){
       S.demo=d.demo||{};S.migraine=d.migraine||{};S.psqi=d.psqi||{};
       S.step=Math.min(Math.max(d.step||1,1),6);
       S.t0=d.t0||Date.now();
-      if(d.lang&&['uz','ru','en'].includes(d.lang)){
-        LANG=d.lang;
-        ['uz','ru','en'].forEach(x=>{const el=document.getElementById('lo-'+x);if(el)el.classList.toggle('active',x===d.lang);});
-      }
     }
   }catch(e){}
   render();
@@ -2812,7 +2646,6 @@ function pinTop(){
   window.scrollTo(0,0);
 }
 function render(){
-  movePill(LANG);
   const steps=[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9];
   if(S.step===7){s7();setTimeout(()=>{if(nbSeq.length>0&&nbIdx===0)runTrial();},160);}
   else if(steps[S.step])steps[S.step]();
@@ -2850,7 +2683,7 @@ async function stillHasSavedData(){
   if(PREVIEW_MODE){
     const b=document.createElement('div');
     b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:999;background:var(--accent2);color:#1a0a10;text-align:center;font-family:var(--font-display);font-weight:700;font-size:12px;padding:5px;';
-    b.textContent='👁️ '+(LANG==='en'?'PREVIEW MODE \u2014 nothing you do here is saved':"KO'RIB CHIQISH REJIMI \u2014 hech narsa saqlanmaydi");
+    b.textContent='👁️ PREVIEW MODE \u2014 nothing you do here is saved';
     document.body.prepend(b);
     render();
     return;
