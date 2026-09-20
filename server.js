@@ -1,7 +1,7 @@
 // ============================================================================
 // Migraine, Sleep & Memory Survey — Collector Server
 // ============================================================================
-// Serves the English-only survey page (survey_english.html by default) and
+// Serves the English-only survey page (full.html by default) and
 // collects survey responses to a local JSON file.
 // On Render's free tier (and any host without a persistent disk), local files
 // are wiped on every restart/redeploy/spin-down — so every write here is also
@@ -19,9 +19,9 @@ const { URL } = require("url");
 // ── CORE CONFIG ─────────────────────────────────────────────────────────────
 const PORT = Number(process.env.PORT || 8787);
 const ROOT = __dirname;
-// The survey page this server hands out. Defaults to the English-only build; set the
-// HTML_FILE env var if you rename the file. path.basename() keeps it inside this folder.
-const HTML_NAME = path.basename(process.env.HTML_FILE || "survey_english.html");
+// The survey page this server hands out (the English-only build, saved as full.html).
+// Set the HTML_FILE env var if you rename the file. path.basename() keeps it inside this folder.
+const HTML_NAME = path.basename(process.env.HTML_FILE || "full.html");
 const HTML_FILE = path.join(ROOT, HTML_NAME);
 const DATA_FILE = path.join(ROOT, "survey-responses.json");
 const COUNTER_FILE = path.join(ROOT, "participant-counter.json");
@@ -630,8 +630,8 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // Serve the survey page at "/", "/index.html", "/<HTML_NAME>", and the old "/full.html"
-  // path (kept as an alias so any existing links or bookmarks keep working).
+  // Serve the survey page at "/", "/index.html", "/<HTML_NAME>", and "/full.html"
+  // (the same file, so existing links or bookmarks keep working).
   if (req.method === "GET" && (
     url.pathname === "/" ||
     url.pathname === "/index.html" ||
